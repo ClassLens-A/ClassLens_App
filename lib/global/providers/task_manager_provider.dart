@@ -82,7 +82,7 @@ class TaskManagerNotifier extends Notifier<List<UserTask>> {
               updateTaskStatus(task.taskID, status);
             }
 
-            if (newStatus == 'SUCCESS' || newStatus == 'FAILURE') {
+            if (newStatus == 'SUCCESS' || newStatus == 'FAILURE'||newStatus == 'error') {
               print("_listen CALLBACK (${task.taskID}): Final state detected. Closing listener.");
               _cancelSubscription(task.taskID); // Close the listener
             }

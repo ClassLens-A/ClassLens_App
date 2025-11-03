@@ -1,5 +1,9 @@
 import 'dart:ui';
+import 'package:classlens/api/api.dart';
+import 'package:classlens/data_models/teacher_profile.dart';
 import 'package:flutter/material.dart';
+import 'package:intl/intl.dart';
+import 'package:lottie/lottie.dart';
 
 
 const Color primaryTextColor = Color(0xFF1A2533);
@@ -7,29 +11,38 @@ const Color secondaryTextColor = Color(0xFF6C757D);
 const Color cardBackgroundColor = Colors.white;
 const Color primaryBackgroundColor = Color(0xFFF0F4F8);
 const Color accentColor = Color(0xFF4A90E2);
+const Color attentionColor = Color(0xFFE53935);
 
 
 const Color circleColor1 = Color.fromARGB(255, 178, 218, 255);
 const Color circleColor2 = Color.fromARGB(255, 201, 247, 222);
 
-class TeacherProfile extends StatelessWidget {
-  final String teacherName;
-  final String teacherEmail;
-  final int totalSubjects;
-  final int totalStudents;
-  final String department;
-  final String dateJoined;
+class UserProfile extends StatefulWidget {
+  final int teacherID;
 
-  const TeacherProfile({
+
+  const UserProfile({
     super.key,
-    this.teacherName = "Yash Solanki",
-    this.teacherEmail = "yash.solanki@example.com",
-    this.totalSubjects = 5,
-    this.totalStudents = 142,
-    this.department = "Computer Science",
-    this.dateJoined = "October 20, 2025",
+    required this.teacherID,
   });
 
+  @override
+  State<UserProfile> createState() => _TeacherProfileState();
+}
+
+class _TeacherProfileState extends State<UserProfile> {
+
+  late final Future<TeacherProfile> _profileFuture;
+
+  @override
+  void initState(){
+    super.initState();
+    _profileFuture = loadProfile();
+  }
+  Future<TeacherProfile> loadProfile() async {
+    final result = await ApiServices.getTeacherProfile(teacherID: widget.teacherID);
+    return result;
+  }
   Widget _buildBlurredAppBar(BuildContext context) {
     final topPadding = MediaQuery.of(context).padding.top;
 
@@ -106,18 +119,45 @@ class TeacherProfile extends StatelessWidget {
             ),
           ),
 
+          FutureBuilder<TeacherProfile>(
+              future: _profileFuture,
+              builder: (context,snapshot){
 
-          SingleChildScrollView(
-            padding: EdgeInsets.only(
-              top: kToolbarHeight + topPadding + 20,
-              left: 16,
-              right: 16,
-              bottom: 20,
-            ),
-            child: _buildProfileCard(context),
+                if(snapshot.connectionState == ConnectionState.waiting){
+                  return Center(
+                      child: Lottie.asset(
+                          'assets/animations/loading2.json',
+                          width: screenSize.width*0.8,
+                          height: screenSize.height*0.8,
+                          fit: BoxFit.contain
+                      )
+                  );
+                }
+
+                if (snapshot.hasError) {
+                  return Center(
+                    child: Text(
+                      'Error: ${snapshot.error}',
+                      style: const TextStyle(color: attentionColor),
+                    ),
+                  );
+                }
+
+                if (snapshot.hasData) {
+                  final profileData = snapshot.data!;
+                  return SingleChildScrollView(
+                    padding: EdgeInsets.only(
+                      top: kToolbarHeight + topPadding + 20,
+                      left: 16, right: 16, bottom: 20,
+                    ),
+
+                    child: _buildProfileCard(context, profileData),
+                  );
+                }
+
+                return Center(child: Lottie.asset('assets/animations/loading2.json',width: screenSize.width*0.8,height: screenSize.height*0.8,fit: BoxFit.contain));
+              }
           ),
-
-          // Blurred AppBar
           _buildBlurredAppBar(context),
         ],
       ),
@@ -125,7 +165,7 @@ class TeacherProfile extends StatelessWidget {
   }
 
 
-  Widget _buildProfileCard(BuildContext context) {
+  Widget _buildProfileCard(BuildContext context, TeacherProfile profile) {
     return Container(
       width: double.infinity,
       alignment: Alignment.center,
@@ -141,12 +181,16 @@ class TeacherProfile extends StatelessWidget {
         ],
       ),
       child: Column(
-        mainAxisSize: MainAxisSize.min, // Shrinks to content
+        mainAxisSize: MainAxisSize.min,
         children: [
-          _buildCardHeader(),
+
+
+          _buildCardHeader(profile),
           const SizedBox(height: 50 + 16),
+
+
           Text(
-            teacherName,
+            profile.name,
             style: const TextStyle(
               fontSize: 24,
               fontWeight: FontWeight.bold,
@@ -155,14 +199,14 @@ class TeacherProfile extends StatelessWidget {
           ),
           const SizedBox(height: 4),
           Text(
-            teacherEmail,
+            profile.email,
             style: const TextStyle(
               fontSize: 16,
               color: secondaryTextColor,
             ),
           ),
           const SizedBox(height: 20),
-          _buildStatsRow(),
+          _buildStatsRow(profile),
           Padding(
             padding: const EdgeInsets.symmetric(horizontal: 20.0),
             child: Divider(color: secondaryTextColor.withOpacity(0.2)),
@@ -170,12 +214,12 @@ class TeacherProfile extends StatelessWidget {
           _buildDetailRow(
             icon: Icons.school_outlined,
             title: "Department",
-            value: department,
+            value: profile.department,
           ),
           _buildDetailRow(
             icon: Icons.calendar_today_outlined,
             title: "Date Joined",
-            value: dateJoined,
+            value: DateFormat.yMMMd().format(profile.dateJoined),
           ),
           const SizedBox(height: 16),
         ],
@@ -183,7 +227,13 @@ class TeacherProfile extends StatelessWidget {
     );
   }
 
-  Widget _buildCardHeader() {
+
+  Widget _buildCardHeader(TeacherProfile profile) {
+    String initial = '?';
+    if (profile.name.isNotEmpty) {
+      initial = profile.name[0].toUpperCase();
+    }
+
     return Stack(
       clipBehavior: Clip.none,
       alignment: Alignment.center,
@@ -211,8 +261,9 @@ class TeacherProfile extends StatelessWidget {
             child: CircleAvatar(
               radius: 46,
               backgroundColor: primaryBackgroundColor,
+
               child: Text(
-                teacherName.isNotEmpty ? teacherName[0].toUpperCase() : '?',
+                initial,
                 style: const TextStyle(
                   fontSize: 40,
                   fontWeight: FontWeight.bold,
@@ -226,25 +277,23 @@ class TeacherProfile extends StatelessWidget {
     );
   }
 
-
-  Widget _buildStatsRow() {
+  Widget _buildStatsRow(TeacherProfile profile) {
     return Padding(
       padding: const EdgeInsets.symmetric(vertical: 20.0, horizontal: 16.0),
       child: Row(
         mainAxisAlignment: MainAxisAlignment.spaceAround,
         children: [
-          _buildStatItem("Total Subjects", totalSubjects.toString()),
+          _buildStatItem("Total Subjects", profile.totalSubjects.toString()),
           Container(
             width: 1,
             height: 40,
             color: secondaryTextColor.withOpacity(0.2),
           ),
-          _buildStatItem("Total Students", totalStudents.toString()),
+          _buildStatItem("Total Students", profile.totalStudents.toString()),
         ],
       ),
     );
   }
-
 
   Widget _buildStatItem(String title, String value) {
     return Column(
@@ -268,7 +317,6 @@ class TeacherProfile extends StatelessWidget {
       ],
     );
   }
-
 
   Widget _buildDetailRow({
     required IconData icon,

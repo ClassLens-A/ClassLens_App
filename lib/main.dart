@@ -1,4 +1,5 @@
 import 'package:device_preview/device_preview.dart';
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:hive_flutter/hive_flutter.dart';
 import 'splash_screen.dart';
@@ -7,11 +8,21 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_local_notifications/flutter_local_notifications.dart';
 import 'package:classlens/data_models/notification_hive_model.dart';
 import 'package:classlens/data_models/class_session_data.dart';
+import 'package:flutter_dotenv/flutter_dotenv.dart';
 
 final FlutterLocalNotificationsPlugin flutterLocalNotificationsPlugin = FlutterLocalNotificationsPlugin();
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
+
+  if(kReleaseMode){
+    // App is in release mode (production)
+    await dotenv.load(fileName: ".env.prod");
+  }
+  else{
+    // App is in debug mode (development)
+    await dotenv.load(fileName: ".env.dev");
+  }
 
 
   await Hive.initFlutter();

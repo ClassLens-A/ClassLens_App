@@ -27,6 +27,8 @@ dependencies:
   flutter_local_notifications: ^19.4.2
   timezone: ^0.10.1
   timeago: ^3.7.1
+  flutter_dotenv: ^6.0.0
+  custom_refresh_indicator: ^4.0.1
 
 dev_dependencies:
   flutter_test:
@@ -39,6 +41,8 @@ flutter:
   uses-material-design: true
   assets:
     - "assets/animations/"
+    - .env.dev
+    - .env.prod
   fonts:
     - family: Lato
       fonts:

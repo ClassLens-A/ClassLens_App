@@ -2,6 +2,7 @@ import 'dart:ui';
 import 'package:classlens/data_models/student_list.dart';
 import 'package:flutter/material.dart';
 import 'package:classlens/data_models/teacher_subjects.dart';
+import 'package:lottie/lottie.dart';
 import '../../api/api.dart';
 
 
@@ -165,7 +166,6 @@ class _StudentListPageState extends State<StudentListPage> {
       child: SingleChildScrollView(
         physics: const AlwaysScrollableScrollPhysics(),
         child: Container(
-          // Ensure it can be pulled even if content is small
           height: MediaQuery.of(context).size.height * 0.5,
           alignment: Alignment.center,
           child: child,
@@ -214,7 +214,13 @@ class _StudentListPageState extends State<StudentListPage> {
                     builder: (context, snapshot) {
                       if (snapshot.connectionState == ConnectionState.waiting &&
                           _allStudents.isEmpty) {
-                        return const Center(child: CircularProgressIndicator());
+                        return Center(
+                          child: Lottie.asset(
+                              'assets/animations/loading2.json',
+                              width: 350,
+                              height: 350
+                          ),
+                        );
                       }
 
 

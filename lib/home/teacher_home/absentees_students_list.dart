@@ -5,6 +5,8 @@ import 'package:classlens/api/api.dart';
 import 'package:classlens/data_models/absentees_student.dart';
 import 'dart:ui';
 
+import 'package:lottie/lottie.dart';
+
 const Color primaryTextColor = Color(0xFF1A2533);
 const Color secondaryTextColor = Color(0xFF6C757D);
 const Color cardBackgroundColor = Colors.white;
@@ -168,7 +170,7 @@ class _AbsenteesStudentListState extends State<AbsenteesStudentList> {
                   onRefresh: _loadStudents,
                   color: accentColor,
                   child: _isLoading
-                      ? const Center(child: CircularProgressIndicator(color: accentColor))
+                      ? Center(child: Lottie.asset('assets/animations/loading2.json',width: screenSize.width*0.8,height: screenSize.height*0.8,fit: BoxFit.contain))
                       : _filteredList.isEmpty
                       ? _buildEmptyState()
                       : _buildStudentList(buttonBarHeight + bottomPadding),

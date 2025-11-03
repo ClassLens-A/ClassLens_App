@@ -82,7 +82,7 @@ class NotificationTaskItem extends ConsumerWidget {
           }
         },
       );
-    } else if (status.status.trim() == 'FAILURE') {
+    } else if (status.status.trim() == 'FAILURE' || status.status.trim()=='error') {
       subtitle = 'Status: Failed';
       trailingWidget = const Icon(Icons.error_outline, color: errorColor);
     } else {

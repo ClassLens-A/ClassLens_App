@@ -5,11 +5,15 @@ import 'package:classlens/main.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_local_notifications/flutter_local_notifications.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:hive/hive.dart';
+import 'package:intl/intl.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:classlens/login/login_selector.dart';
 import 'package:classlens/global/global.dart';
 import 'package:permission_handler/permission_handler.dart';
 import 'package:classlens/home/teacher_home/take_attendance.dart';
+import '../../data_models/class_session_data.dart';
+import '../../data_models/notification_hive_model.dart';
 import '../../global/providers/task_manager_provider.dart';
 import '../../page_animations/slide_animation.dart';
 import 'package:classlens/home/teacher_home/widgets/notification_icon.dart';
@@ -129,6 +133,13 @@ class _HomeState extends ConsumerState<Home> {
                 pref.setBool("rememberMe", false);
                 pref.remove("teacherName");
                 pref.remove("teacherID");
+                final notificationsBox = Hive.box<NotificationHiveModel>('notifications');
+                final sessionsBox = Hive.box<SessionStats>('classSessionBox');
+
+                await notificationsBox.clear();
+                await sessionsBox.clear();
+
+                print("Cleared all user-specific Hive boxes.");
                 Navigator.of(context).pop();
                 Navigator.push(context, MaterialPageRoute(builder: (context)=>const LoginSelector()));
               },
@@ -202,7 +213,6 @@ class _HomeState extends ConsumerState<Home> {
     print(widget.teacherID);
     final topPadding = MediaQuery.of(context).padding.top;
     final tasks = ref.watch(taskManagerProvider);
-    print("Home screen called ref.watch");
     final screenSize = MediaQuery.of(context).size;
     return Scaffold(
       backgroundColor: primaryBackgroundColor,
@@ -300,7 +310,7 @@ class _HomeState extends ConsumerState<Home> {
                       _showLogoutDialog(context);
                     }
                     if (value == 'profile') {
-                      navigatorWithAnimation(context, TeacherProfile());
+                      navigatorWithAnimation(context, UserProfile(teacherID: widget.teacherID));
                     }
                   },
                   itemBuilder: (BuildContext context) => <PopupMenuEntry<String>>[
@@ -417,28 +427,127 @@ class TakeAttendanceCard extends StatelessWidget {
   }
 }
 
-class RecentActivitySection extends StatelessWidget {
+class RecentActivitySection extends StatefulWidget {
   const RecentActivitySection({super.key});
+
+  @override
+  State<RecentActivitySection> createState() => _RecentActivitySectionState();
+}
+
+class _RecentActivitySectionState extends State<RecentActivitySection> {
+  List<SessionStats> recentStats = [];
+
+  @override
+  void initState() {
+    super.initState();
+    _loadRecentActivity();
+  }
+
+  void _loadRecentActivity() {
+
+    final stats = classSessionBox.values.cast<SessionStats>().toList();
+
+
+    stats.sort((a, b) {
+      if (a.date == null && b.date == null) return 0;
+      if (a.date == null) return 1;
+      if (b.date == null) return -1;
+      return b.date.compareTo(a.date);
+    });
+
+
+    setState(() {
+      recentStats = stats.take(2).toList();
+    });
+  }
 
   @override
   Widget build(BuildContext context) {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        const Text(
-          "Recent Activity",
-          style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold, color: primaryTextColor),
+
+        Row(
+          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+          children: [
+            const Text(
+              "Recent Activity",
+              style: TextStyle(
+                  fontSize: 20,
+                  fontWeight: FontWeight.bold,
+                  color: primaryTextColor),
+            ),
+
+            IconButton(
+              icon: const Icon(Icons.refresh, color: secondaryTextColor),
+              onPressed: () {
+                _loadRecentActivity();
+              },
+            ),
+          ],
         ),
+
         const SizedBox(height: 12),
 
-        _buildActivityItem("Math - Grade 5", "Today, 9:00 AM", 95, successColor),
-        const SizedBox(height: 10),
-        _buildActivityItem("Science - Grade 6", "Yesterday, 1:00 PM", 88, warningColor),
+
+        if (recentStats.isEmpty)
+          Container(
+            padding: const EdgeInsets.all(16),
+            width: double.infinity,
+            decoration: BoxDecoration(
+              color: cardBackgroundColor,
+              borderRadius: BorderRadius.circular(16),
+            ),
+            child: const Center(
+              child: Text(
+                "No recent activity found.",
+                style: TextStyle(color: secondaryTextColor, fontSize: 14),
+              ),
+            ),
+          )
+        else
+          Column(
+            children: [
+              for (int i = 0; i < recentStats.length; i++)
+                Padding(
+                  padding: EdgeInsets.only(bottom: i == recentStats.length - 1 ? 0 : 10),
+                  child: _buildActivityItemFromStats(recentStats[i]),
+                ),
+            ],
+          ),
       ],
     );
   }
+  Widget _buildActivityItemFromStats(SessionStats stats) {
 
-  Widget _buildActivityItem(String title, String subtitle, int percentage, Color color) {
+    final total = stats.presentCount + stats.absentCount;
+    final percentage = (total == 0) ? 0.0 : (stats.presentCount / total) * 100;
+
+    final Color color;
+    if (percentage >= 75) {
+      color = successColor;
+    } else if (percentage >= 50) {
+      color = warningColor;
+    } else {
+      color = attentionColor;
+    }
+
+
+    final String dateString = (stats.date == null)
+        ? "No Date"
+        : DateFormat.yMMMd().format(stats.date);
+
+    return _buildActivityItem(
+      stats.subject,
+      dateString,
+      percentage.toInt(),
+      color,
+    );
+  }
+
+
+  Widget _buildActivityItem(
+      String title, String subtitle, int percentage, Color color) {
     return Container(
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
@@ -456,20 +565,26 @@ class RecentActivitySection extends StatelessWidget {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Text(title, style: const TextStyle(fontWeight: FontWeight.bold, color: primaryTextColor)),
+                Text(title,
+                    style: const TextStyle(
+                        fontWeight: FontWeight.bold, color: primaryTextColor)),
                 const SizedBox(height: 4),
-                Text(subtitle, style: const TextStyle(color: secondaryTextColor, fontSize: 12)),
+                Text(subtitle,
+                    style: const TextStyle(
+                        color: secondaryTextColor, fontSize: 12)),
               ],
             ),
           ),
           Text(
             "$percentage%",
-            style: TextStyle(fontWeight: FontWeight.bold, fontSize: 18, color: color),
+            style: TextStyle(
+                fontWeight: FontWeight.bold, fontSize: 18, color: color),
           ),
         ],
       ),
     );
   }
+
 }
 
 class MyClassesSection extends StatelessWidget {
@@ -481,55 +596,11 @@ class MyClassesSection extends StatelessWidget {
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         const Text(
-          "My Classes",
+          "Recent News (MSU)",
           style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold, color: primaryTextColor),
         ),
         const SizedBox(height: 12),
-        // Example Class Items - Replace with your data model
-        _buildClassItem("English - Grade 7", 28, 92),
-        const SizedBox(height: 10),
-        _buildClassItem("History - Grade 8", 32, 74),
-        const SizedBox(height: 10),
-        _buildClassItem("Physics - Grade 10", 25, 65),
       ],
-    );
-  }
-
-  Widget _buildClassItem(String title, int studentCount, int percentage) {
-    Color progressColor = successColor;
-    if (percentage < 75) progressColor = attentionColor;
-    else if (percentage < 90) progressColor = warningColor;
-
-    return Container(
-      padding: const EdgeInsets.all(16),
-      decoration: BoxDecoration(
-        color: cardBackgroundColor,
-        borderRadius: BorderRadius.circular(16),
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Row(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-            children: [
-              Text(title, style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 16, color: primaryTextColor)),
-              Text("$percentage%", style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16, color: progressColor)),
-            ],
-          ),
-          const SizedBox(height: 8),
-          Text("$studentCount Students", style: const TextStyle(color: secondaryTextColor, fontSize: 12)),
-          const SizedBox(height: 12),
-          ClipRRect(
-            borderRadius: BorderRadius.circular(10),
-            child: LinearProgressIndicator(
-              value: percentage / 100,
-              backgroundColor: progressColor.withOpacity(0.2),
-              valueColor: AlwaysStoppedAnimation<Color>(progressColor),
-              minHeight: 8,
-            ),
-          ),
-        ],
-      ),
     );
   }
 }

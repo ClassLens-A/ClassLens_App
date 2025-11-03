@@ -2,20 +2,23 @@ import 'dart:convert';
 import 'dart:io';
 import 'package:classlens/data_models/absentees_student.dart';
 import 'package:classlens/data_models/subjects.dart';
+import 'package:classlens/data_models/teacher_profile.dart';
 import 'package:classlens/data_models/teacher_subjects.dart';
 import 'package:http/http.dart' as http;
 import 'package:classlens/data_models/departments.dart';
 import 'package:classlens/data_models/task_status.dart';
 import 'package:classlens/data_models/student_list.dart';
-
+import 'package:classlens/global/config.dart';
 import '../global/global.dart';
 
 
 class ApiServices{
+  static final String _baseUrl = AppConfig.baseUrl;
 
   static Future<List<Departments>> getDepartments() async{
+    print("base url is $_baseUrl");
 
-    const String apiUrl = 'http://127.0.0.1:8000/api/getDepartments/';
+    String apiUrl = '$_baseUrl/getDepartments/';
 
     try{
 
@@ -39,7 +42,7 @@ class ApiServices{
 
   static Future<String?> signUpTeacher({required final String name, required String email, required String password,required String? departmentID}) async{
 
-    const String endpoint = "http://127.0.0.1:8000/api/registerNewTeacher";
+    String endpoint = "$_baseUrl/registerNewTeacher";
     final url = Uri.parse(endpoint);
 
     try{
@@ -77,7 +80,7 @@ class ApiServices{
   }
 
   static Future<bool> sendOpt({required final String email}) async {
-    const String endpoint = "http://127.0.0.1:8000/api/sendOtp";
+    String endpoint = "$_baseUrl/sendOtp";
     final url = Uri.parse(endpoint);
 
     try{
@@ -109,7 +112,7 @@ class ApiServices{
   }
 
   static Future<bool> verifyOpt({required final String email, required final int otp})async{
-    const endpoint = "http://127.0.0.1:8000/api/verifyOtp";
+    String endpoint = "$_baseUrl/verifyOtp";
     final url = Uri.parse(endpoint);
 
     try{
@@ -139,7 +142,7 @@ class ApiServices{
   }
 
   static Future<String> verifyEmail({required final String email}) async{
-    const endpoint = "http://127.0.0.1:8000/api/verifyEmail";
+    String endpoint = "$_baseUrl/verifyEmail";
     final url = Uri.parse(endpoint);
 
     const headers ={
@@ -171,7 +174,7 @@ class ApiServices{
   }
 
   static Future<bool> setPassword({required final String email, required final String password}) async{
-    const endpoint = "http://127.0.0.1:8000/api/setPassword";
+    String endpoint = "$_baseUrl/setPassword";
     final url = Uri.parse(endpoint);
 
     const headers ={
@@ -201,7 +204,7 @@ class ApiServices{
   }
 
   static Future<Map<String,dynamic>> validateTeacher({required final String email, required final String password}) async{
-    const endpoint = "http://127.0.0.1:8000/api/validateTeacher";
+    String endpoint = "$_baseUrl/validateTeacher";
     final url = Uri.parse(endpoint);
 
     const headers = {
@@ -240,7 +243,7 @@ class ApiServices{
   }
 
   static Future<List<Subjects>> getSubjects({required final String departmentName,required final int year, required final int semester}) async{
-    const endpoint = 'http://127.0.0.1:8000/api/getSubjectDetails';
+    String endpoint = '$_baseUrl/getSubjectDetails';
     final url = Uri.parse(endpoint);
 
 
@@ -278,7 +281,7 @@ class ApiServices{
   }
 
   static Future<Map<String,dynamic>> markAttendance({required final File imageFile, required final String departmentName, required final int semester,required final int year, required final String subject,required final int subjectID}) async {
-    const endpoint = 'http://127.0.0.1:8000/api/markAttendance';
+    String endpoint = '$_baseUrl/markAttendance';
     final url = Uri.parse(endpoint);
     try {
       final request = http.MultipartRequest('POST', url);
@@ -323,7 +326,7 @@ class ApiServices{
 
   static Future<TaskStatus> checkTaskStatus({required taskID}) async{
 
-    String endpoint = 'http://127.0.0.1:8000/api/attendanceStatus/$taskID/';
+    String endpoint = '$_baseUrl/attendanceStatus/$taskID/';
 
     final url =Uri.parse(endpoint);
 
@@ -345,7 +348,7 @@ class ApiServices{
   }
 
   static Future<List<TeacherSubjects>> getTeacherSubjects({required teacherID}) async{
-    String endpoint = 'http://127.0.0.1:8000/api/getSubjects/';
+    String endpoint = '$_baseUrl/getSubjects/';
     final url = Uri.parse(endpoint);
 
     const header ={
@@ -389,7 +392,7 @@ class ApiServices{
   }
 
   static Future<List<StudentList>> getStudentList({required subjectID}) async{
-    String endpoint = 'http://127.0.0.1:8000/api/students/attendance/';
+    String endpoint = '$_baseUrl/students/attendance/';
     final url = Uri.parse(endpoint);
 
     const header ={
@@ -432,7 +435,7 @@ class ApiServices{
   }
 
   static Future<List<AbsenteesStudents>> getAbsentStudents({required sessionID}) async{
-    String endpoint = "http://127.0.0.1:8000/api/getAbsenteesList/";
+    String endpoint = "$_baseUrl/getAbsenteesList/";
     final url = Uri.parse(endpoint);
 
     const header ={
@@ -474,7 +477,7 @@ class ApiServices{
   }
 
   static Future<bool> changeAttendance({required sessionID,required List<int> students})async{
-    const endpoint = "http://127.0.0.1:8000/api/changeAttendance/";
+    String endpoint = "$_baseUrl/changeAttendance/";
     final url = Uri.parse(endpoint);
 
     const header ={
@@ -503,6 +506,36 @@ class ApiServices{
     catch(e){
       print(e.toString());
       return Future.value(false);
+    }
+  }
+
+  static Future<TeacherProfile> getTeacherProfile({required teacherID}) async{
+    String endpoint = '$_baseUrl/teacherProfile/$teacherID';
+    final url = Uri.parse(endpoint);
+
+    try{
+
+      final response = await http.get(url);
+      if(response.statusCode==200){
+        final jsonBody = jsonDecode(response.body);
+
+        final profile = jsonBody["teacher_profile"];
+        if(profile!=null){
+          print(profile);
+          return TeacherProfile.fromJson(profile);
+        }
+        else{
+          return Future.value(TeacherProfile(name:"teacher",email: "null",totalSubjects: 0,totalStudents: 0,department: "null",dateJoined: DateTime.now()));
+        }
+      }
+      else{
+        return Future.value(TeacherProfile(name:"teacher",email: "null",totalSubjects: 0,totalStudents: 0,department: "null",dateJoined: DateTime.now()));
+      }
+
+    }
+    catch(e){
+      print(e.toString());
+      return Future.value(TeacherProfile(name:"teacher",email: "null",totalSubjects: 0,totalStudents: 0,department: "null",dateJoined: DateTime.now()));
     }
   }
 }

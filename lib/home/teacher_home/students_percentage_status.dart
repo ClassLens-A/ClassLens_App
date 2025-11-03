@@ -3,6 +3,8 @@ import 'package:classlens/page_animations/slide_animation.dart';
 import 'package:flutter/material.dart';
 import 'package:classlens/api/api.dart';
 import 'package:classlens/data_models/teacher_subjects.dart';
+import 'package:lottie/lottie.dart';
+import 'package:custom_refresh_indicator/custom_refresh_indicator.dart';
 
 const Color primaryTextColor = Color(0xFF1A2533);
 const Color secondaryTextColor = Color(0xFF6C757D);
@@ -24,7 +26,7 @@ class StudentsPercentageStatus extends StatefulWidget {
       _StudentsPercentageStatusState();
 }
 
-class _StudentsPercentageStatusState extends State<StudentsPercentageStatus> {
+class _StudentsPercentageStatusState extends State<StudentsPercentageStatus> with TickerProviderStateMixin{
   
   Future<List<TeacherSubjects>>? _subjectsFuture;
 
@@ -71,7 +73,12 @@ class _StudentsPercentageStatusState extends State<StudentsPercentageStatus> {
       future: _subjectsFuture,
       builder: (context, snapshot) {
         if (snapshot.connectionState == ConnectionState.waiting) {
-          return const Center(child: CircularProgressIndicator());
+         return Center(
+           child: Lottie.asset(
+             'assets/animations/loading2.json',
+               fit: BoxFit.contain
+           ),
+         );
         }
 
 

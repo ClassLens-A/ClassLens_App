@@ -93,8 +93,8 @@ class _AttendanceResult extends State<AttendanceResult> {
 
   Widget _buildStatCard({required SessionStats stats, required VoidCallback onTap}) {
     // Using your test numbers
-    final int presentCount = stats.presentCount + 2;
-    final int absentCount = stats.absentCount - 2;
+    final int presentCount = stats.presentCount ;
+    final int absentCount = stats.absentCount;
     final int total = presentCount + absentCount;
 
     return Material(
