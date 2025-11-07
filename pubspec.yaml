@@ -29,6 +29,7 @@ dependencies:
   timeago: ^3.7.1
   flutter_dotenv: ^6.0.0
   custom_refresh_indicator: ^4.0.1
+  connectivity_plus: ^7.0.0
 
 dev_dependencies:
   flutter_test:

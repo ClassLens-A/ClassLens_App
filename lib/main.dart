@@ -37,6 +37,8 @@ void main() async {
   print("Total sessions are ${classSessionBox.length}");
   print("totals keys are ${classSessionBox.keys}");
 
+  clearExpiredNotification();
+
 
   const AndroidInitializationSettings initializationSettingsAndroid = AndroidInitializationSettings("app_icon.png");
   const WindowsInitializationSettings initializationSettingsWindows = WindowsInitializationSettings(
@@ -66,7 +68,26 @@ void main() async {
   );
 }
 
+void clearExpiredNotification(){
+
+  final notificationsBox = Hive.box<NotificationHiveModel>('notifications');
+  final List<NotificationHiveModel> notifications = notificationsBox.values.toList();
+  final DateTime cutoffDate = DateTime.now().subtract(const Duration(days: 2));
+
+  final expiredKeys = notificationsBox
+      .values
+      .where((notifications)=>notifications.submissionTime.isBefore(cutoffDate))
+      .map((notifications)=>notifications.taskID)
+      .toList();
+
+  if(expiredKeys.isNotEmpty){
+    notificationsBox.deleteAll(expiredKeys);
+    print("Cleared ${expiredKeys.length} expired notifications.");
+  }
+}
+
 class MyApp extends StatelessWidget {
+
   @override
   Widget build(BuildContext context) {
     return MaterialApp(

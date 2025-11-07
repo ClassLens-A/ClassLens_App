@@ -1,4 +1,5 @@
 import 'dart:ui';
+import 'package:classlens/global/providers/connectivity_provider.dart';
 import 'package:classlens/home/teacher_home/attendance_result.dart';
 import 'package:classlens/home/teacher_home/teacher_profile.dart';
 import 'package:classlens/main.dart';
@@ -7,6 +8,7 @@ import 'package:flutter_local_notifications/flutter_local_notifications.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:hive/hive.dart';
 import 'package:intl/intl.dart';
+import 'package:lottie/lottie.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:classlens/login/login_selector.dart';
 import 'package:classlens/global/global.dart';
@@ -18,6 +20,7 @@ import '../../global/providers/task_manager_provider.dart';
 import '../../page_animations/slide_animation.dart';
 import 'package:classlens/home/teacher_home/widgets/notification_icon.dart';
 import 'package:classlens/home/teacher_home/students_percentage_status.dart';
+import 'package:connectivity_plus/connectivity_plus.dart';
 
 
 const Color primaryBackgroundColor = Color(0xFFF0F4F8);
@@ -210,10 +213,12 @@ class _HomeState extends ConsumerState<Home> {
 
   @override
   Widget build(BuildContext context) {
-    print(widget.teacherID);
     final topPadding = MediaQuery.of(context).padding.top;
-    final tasks = ref.watch(taskManagerProvider);
     final screenSize = MediaQuery.of(context).size;
+
+    final connectivity = ref.watch(connectivityStreamProvider);
+    final tasks = ref.watch(taskManagerProvider);
+
     return Scaffold(
       backgroundColor: primaryBackgroundColor,
       floatingActionButton: FloatingActionButton(
@@ -221,7 +226,9 @@ class _HomeState extends ConsumerState<Home> {
           ref.read(taskManagerProvider.notifier).deleteAllNotification();
         }
       ),
+
       body: Stack(
+        fit: StackFit.expand,
         children: [
 
           Positioned(
@@ -243,9 +250,30 @@ class _HomeState extends ConsumerState<Home> {
 
           Padding(
             padding: EdgeInsets.only(top: kToolbarHeight + topPadding),
-            child: IndexedStack(
-              index: _selectedIndex,
-              children: _pages,
+            child:connectivity.when(
+                data: (statusList){
+
+                  if(statusList.contains(ConnectivityResult.none)){
+                    return _buildOfflineUI();
+                  }else{
+                   return IndexedStack(
+                     index: _selectedIndex,
+                     children: _pages,
+                   );
+                  }
+                },
+                error: (err,track){
+                  return IndexedStack(
+                    index: _selectedIndex,
+                    children: _pages,
+                  );
+                },
+                loading: (){
+                  return IndexedStack(
+                    index: _selectedIndex,
+                    children: _pages,
+                  );
+                }
             ),
           ),
 
@@ -366,6 +394,42 @@ class _HomeState extends ConsumerState<Home> {
       backgroundColor: cardBackgroundColor,
       elevation: 10,
       onTap: _onItemTapped,
+    );
+  }
+
+  Widget _buildOfflineUI() {
+    return Center(
+      child: Padding(
+        padding: const EdgeInsets.all(32.0),
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            Lottie.asset(
+              'assets/animations/no_internet_connection.json',
+              height: 150,
+            ),
+            const SizedBox(height: 24),
+            const Text(
+              'You Are Offline',
+              style: TextStyle(
+                color: primaryTextColor,
+                fontWeight: FontWeight.bold,
+                fontSize: 22,
+              ),
+              textAlign: TextAlign.center,
+            ),
+            const SizedBox(height: 8),
+            const Text(
+              'Please check your network connection.',
+              style: TextStyle(
+                color: secondaryTextColor,
+                fontSize: 16,
+              ),
+              textAlign: TextAlign.center,
+            ),
+          ],
+        ),
+      ),
     );
   }
 }
