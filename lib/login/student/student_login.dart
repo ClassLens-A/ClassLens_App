@@ -1,27 +1,24 @@
 import 'package:classlens/page_animations/slide_animation.dart';
 import 'package:flutter/material.dart';
-import 'package:classlens/login/teacher/teacher_signup_page.dart';
+import 'package:classlens/login/student/student_signup_page.dart';
 import 'package:classlens/api/api.dart';
-import 'package:classlens/home/teacher_home/home_screen.dart';
-import 'package:shared_preferences/shared_preferences.dart';
-// ignore: unused_import
 import 'package:classlens/global/global.dart';
 
-class Login extends StatefulWidget {
-  const Login({super.key});
+class StudentLogin extends StatefulWidget {
+  const StudentLogin({super.key});
 
   @override
-  State<Login> createState() => _LoginPageState();
+  State<StudentLogin> createState() => _StudentLoginPageState();
 }
 
-class _LoginPageState extends State<Login> {
+class _StudentLoginPageState extends State<StudentLogin> {
   final _formKey = GlobalKey<FormState>();
   bool _isLoading = false;
   bool isChecked = true;
   bool _obscurePassword = true;
 
-  final _teacherEmailController = TextEditingController();
-  final _teacherPasswordController = TextEditingController();
+  final _studentPRNController = TextEditingController();
+  final _studentPasswordController = TextEditingController();
 
   static const Color primaryBackgroundColor = Color(0xFFF0F4F8);
   static const Color cardBackgroundColor = Colors.white;
@@ -38,14 +35,14 @@ class _LoginPageState extends State<Login> {
   @override
   void initState() {
     super.initState();
-    _teacherPasswordController.clear();
-    _teacherEmailController.clear();
+    _studentPasswordController.clear();
+    _studentPRNController.clear();
   }
 
   @override
   void dispose() {
-    _teacherEmailController.dispose();
-    _teacherPasswordController.dispose();
+    _studentPRNController.dispose();
+    _studentPasswordController.dispose();
     super.dispose();
   }
 
@@ -79,7 +76,7 @@ class _LoginPageState extends State<Login> {
             child: Center(
               child: SingleChildScrollView(
                 padding: const EdgeInsets.symmetric(horizontal: 24.0),
-                child: _buildLoginCard(),
+                child: _buildStudentLoginCard(),
               ),
             ),
           ),
@@ -88,7 +85,7 @@ class _LoginPageState extends State<Login> {
     );
   }
 
-  Widget _buildLoginCard() {
+  Widget _buildStudentLoginCard() {
     return Container(
       // --- EDITED: Optimized padding for a sleeker look ---
       padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 32),
@@ -119,7 +116,7 @@ class _LoginPageState extends State<Login> {
             ),
             const SizedBox(height: 8),
             const Text(
-              'Welcome, Teacher',
+              'Welcome, Student',
               style: TextStyle(
                 fontSize: 24,
                 fontWeight: FontWeight.bold,
@@ -128,19 +125,20 @@ class _LoginPageState extends State<Login> {
             ),
             const SizedBox(height: 28),
 
-            // --- Email Text Field ---
+            // --- PRN Text Field ---
             TextFormField(
-              controller: _teacherEmailController,
-              decoration: _inputDecoration('Email', Icons.email_outlined),
-              keyboardType: TextInputType.emailAddress,
+              controller: _studentPRNController,
+              decoration: _inputDecoration('PRN', Icons.badge_outlined),
+              keyboardType: TextInputType.number,
+              maxLength: 10,
               validator: (value) {
-                if (value == null || value.isEmpty) {
-                  return "Please enter an email";
-                }
-                if (!RegExp(r"^[a-zA-Z0-9._%+-]+@msubaroda\.ac\.in$").hasMatch(value)) {
-                  return "Please enter a valid University email";
-                }
-                return null;
+              if (value == null || value.isEmpty) {
+                return "Please enter your PRN";
+              }
+              if (!RegExp(r'^\d{10}$').hasMatch(value)) {
+                return "Please enter a valid 10-digit PRN";
+              }
+              return null;
               },
             ),
 
@@ -148,7 +146,7 @@ class _LoginPageState extends State<Login> {
 
             // --- Password Text Field ---
             TextFormField(
-              controller: _teacherPasswordController,
+              controller: _studentPasswordController,
               decoration: _inputDecoration('Password', Icons.lock_outline).copyWith(
                 suffixIcon: IconButton(
                   onPressed: () {
@@ -212,7 +210,7 @@ class _LoginPageState extends State<Login> {
                 ),
                 elevation: 0,
               ),
-              onPressed: _isLoading ? null : _handleLogin,
+              onPressed: _isLoading ? null : _handleStudentLogin,
               child: _isLoading
                   ? const CircularProgressIndicator(
                 color: Colors.white,
@@ -226,27 +224,37 @@ class _LoginPageState extends State<Login> {
             const SizedBox(height: 20),
 
             // --- Registration Link ---
-            GestureDetector(
-              onTap: () {
+            TextButton(
+              onPressed: () {
                 Navigator.push(
                   context,
-                  MaterialPageRoute(builder: (context) => const TeacherSignUpPage()),
+                  MaterialPageRoute(
+                      builder: (context) => const StudentSignUpPage()),
                 );
               },
               child: const Text.rich(
                 TextSpan(
-                  text: "Don't have an account? ",
-                  style: TextStyle(color: secondaryTextColor, fontSize: 15),
-                  children: [
-                    TextSpan(
+                  style: const TextStyle( // Default style for the whole TextSpan
+                    fontSize: 15,
+                    fontWeight: FontWeight.w600,
+                  ),
+                  children: <TextSpan>[
+                    const TextSpan(
+                      text: "Don't have an account? ",
+                      style: TextStyle(
+                        color: secondaryTextColor, // Defined in your code
+                      ),
+                    ),
+                    const TextSpan(
                       text: 'Register',
                       style: TextStyle(
-                        color: accentColor,
-                        fontWeight: FontWeight.bold,
+                        color: Colors.blue,
+                        // fontWeight is inherited from the parent TextSpan's style
                       ),
                     ),
                   ],
                 ),
+                textAlign: TextAlign.center,
               ),
             ),
           ],
@@ -263,7 +271,7 @@ class _LoginPageState extends State<Login> {
       prefixIcon: Icon(icon, color: secondaryTextColor, size: 22),
       fillColor: textFieldFillColor,
       filled: true,
-
+      counterText: '',
       contentPadding: const EdgeInsets.symmetric(horizontal: 20, vertical: 16),
       border: OutlineInputBorder(
         borderRadius: BorderRadius.circular(16.0),
@@ -281,15 +289,15 @@ class _LoginPageState extends State<Login> {
   }
 
   // --- Login Logic Handler ---
-  void _handleLogin() async {
+  void _handleStudentLogin() async {
     if (_formKey.currentState!.validate()) {
       setState(() {
         _isLoading = true;
       });
 
-      final result = await ApiServices.validateTeacher(
-          email: _teacherEmailController.text,
-          password: _teacherPasswordController.text);
+      final result = await ApiServices.validateStudent(
+          prn: int.parse(_studentPRNController.text),
+          password: _studentPasswordController.text);
 
       if (mounted) {
         setState(() {
@@ -297,13 +305,24 @@ class _LoginPageState extends State<Login> {
         });
 
         if (result['status']) {
-          _teacherEmailController.clear();
-          _teacherPasswordController.clear();
-          final SharedPreferences pref = await SharedPreferences.getInstance();
-          pref.setBool("rememberMe", isChecked);
-          pref.setString("teacherName", result['teacherName']);
-          pref.setInt("teacherID", result['teacherID']);
-          navigatorWithAnimation(context, Home(teacherName: result['teacherName'] as String?,teacherID: result['teacherID'] as int),);
+          _studentPRNController.clear();
+          _studentPasswordController.clear();
+          
+          // Save student session to SharedPreferences
+          await saveStudentSession(
+            rememberMe: isChecked,
+            studentName: result['studentName'],
+            studentID: result['student_id'],
+            prn: result['prn'].toString(),
+          );
+          
+          // Register FCM token for push notifications
+          await registerFCMToken(result['student_id']);
+          
+          navigatorWithAnimation(
+            context,
+            const StudentHomeScreen(),
+          );
         } else {
           ScaffoldMessenger.of(context).showSnackBar(
             const SnackBar(

@@ -24,12 +24,16 @@ dependencies:
   path_provider: ^2.0.15
   intl: ^0.20.2
   device_preview: ^1.1.0
-  flutter_local_notifications: ^19.4.2
+  flutter_local_notifications: ^19.5.0
   timezone: ^0.10.1
   timeago: ^3.7.1
   flutter_dotenv: ^6.0.0
   custom_refresh_indicator: ^4.0.1
   connectivity_plus: ^7.0.0
+  google_mlkit_face_detection: ^0.13.1
+  percent_indicator: ^4.2.5
+  firebase_core: ^4.2.1
+  firebase_messaging: ^16.0.4
 
 dev_dependencies:
   flutter_test:

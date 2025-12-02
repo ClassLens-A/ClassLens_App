@@ -1,7 +1,10 @@
 import 'package:classlens/login/teacher/teacher_login.dart';
+import 'package:classlens/login/student/student_login.dart';
 import 'package:classlens/page_animations/slide_animation.dart';
 import 'package:flutter/material.dart';
 import 'package:classlens/global/global.dart';
+import 'package:classlens/home/student_home/home_screen.dart';
+import 'package:classlens/home/teacher_home/home_screen.dart';
 
 
 const Color primaryBackgroundColor = Color(0xFFF0F4F8);
@@ -22,14 +25,75 @@ class LoginSelector extends StatefulWidget {
 }
 
 class _LoginSelectorState extends State<LoginSelector> {
+  bool _isCheckingSession = true;
+
   @override
   void initState() {
     super.initState();
+    _checkRememberedSession();
+  }
+
+  Future<void> _checkRememberedSession() async {
+    final rememberMe = await getRememberMe();
+    
+    if (rememberMe) {
+      final userType = await getUserType();
+      
+      if (userType == "student") {
+        // Re-register FCM token on auto-login
+        final studentId = await getStudentID();
+        if (studentId > 0) {
+          await registerFCMToken(studentId);
+        }
+        
+        // Auto-login as student
+        if (mounted) {
+          Navigator.pushReplacement(
+            context,
+            MaterialPageRoute(builder: (context) => const StudentHomeScreen()),
+          );
+        }
+        return;
+      } else if (userType == "teacher") {
+        // Auto-login as teacher
+        final teacherName = await getUserName();
+        final teacherID = await getUserID();
+        if (mounted) {
+          Navigator.pushReplacement(
+            context,
+            MaterialPageRoute(
+              builder: (context) => Home(
+                teacherName: teacherName,
+                teacherID: teacherID,
+              ),
+            ),
+          );
+        }
+        return;
+      }
+    }
+    
+    // No remembered session, show login selector
+    if (mounted) {
+      setState(() {
+        _isCheckingSession = false;
+      });
+    }
   }
 
   @override
   Widget build(BuildContext context) {
     final screenSize = MediaQuery.of(context).size;
+
+    // Show loading while checking session
+    if (_isCheckingSession) {
+      return Scaffold(
+        backgroundColor: primaryBackgroundColor,
+        body: const Center(
+          child: CircularProgressIndicator(),
+        ),
+      );
+    }
 
     return Scaffold(
       backgroundColor: primaryBackgroundColor,
@@ -97,9 +161,7 @@ class _LoginSelectorState extends State<LoginSelector> {
                     description: "Access your courses, attendance, and grades",
                     iconColor: iconColorStudent,
                     onTap: () {
-                      ScaffoldMessenger.of(context).showSnackBar(
-                        const SnackBar(content: Text('Student login coming soon!')),
-                      );
+                      navigatorWithAnimation(context, const StudentLogin());
                     },
                   ),
                   const SizedBox(height: 24),

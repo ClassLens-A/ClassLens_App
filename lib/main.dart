@@ -2,6 +2,7 @@ import 'package:device_preview/device_preview.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:hive_flutter/hive_flutter.dart';
+import 'login/login_selector.dart';
 import 'splash_screen.dart';
 import 'package:classlens/global/global.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -9,8 +10,18 @@ import 'package:flutter_local_notifications/flutter_local_notifications.dart';
 import 'package:classlens/data_models/notification_hive_model.dart';
 import 'package:classlens/data_models/class_session_data.dart';
 import 'package:flutter_dotenv/flutter_dotenv.dart';
+import 'package:firebase_core/firebase_core.dart';
+import 'package:firebase_messaging/firebase_messaging.dart';
+import 'firebase_options.dart';
 
 final FlutterLocalNotificationsPlugin flutterLocalNotificationsPlugin = FlutterLocalNotificationsPlugin();
+
+// Handle background messages
+@pragma('vm:entry-point')
+Future<void> _firebaseMessagingBackgroundHandler(RemoteMessage message) async {
+  await Firebase.initializeApp(options: DefaultFirebaseOptions.currentPlatform);
+  print("Handling a background message: ${message.messageId}");
+}
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -24,6 +35,25 @@ void main() async {
     await dotenv.load(fileName: ".env.dev");
   }
 
+  // Initialize Firebase
+  await Firebase.initializeApp(
+    options: DefaultFirebaseOptions.currentPlatform,
+  );
+  
+  // Set up background message handler
+  FirebaseMessaging.onBackgroundMessage(_firebaseMessagingBackgroundHandler);
+  
+  // Handle foreground messages
+  FirebaseMessaging.onMessage.listen((RemoteMessage message) {
+    print('Got a message whilst in the foreground!');
+    print('Message data: ${message.data}');
+
+    if (message.notification != null) {
+      print('Message also contained a notification: ${message.notification}');
+      // Show local notification
+      _showLocalNotification(message);
+    }
+  });
 
   await Hive.initFlutter();
   Hive.registerAdapter(NotificationHiveModelAdapter());
@@ -86,6 +116,29 @@ void clearExpiredNotification(){
   }
 }
 
+// Show local notification when app is in foreground
+void _showLocalNotification(RemoteMessage message) async {
+  const AndroidNotificationDetails androidPlatformChannelSpecifics =
+      AndroidNotificationDetails(
+    'attendance_channel',
+    'Attendance Notifications',
+    channelDescription: 'Notifications for attendance updates',
+    importance: Importance.max,
+    priority: Priority.high,
+    showWhen: true,
+  );
+
+  const NotificationDetails platformChannelSpecifics =
+      NotificationDetails(android: androidPlatformChannelSpecifics);
+
+  await flutterLocalNotificationsPlugin.show(
+    message.hashCode,
+    message.notification?.title ?? 'ClassLens',
+    message.notification?.body ?? '',
+    platformChannelSpecifics,
+  );
+}
+
 class MyApp extends StatelessWidget {
 
   @override
@@ -101,10 +154,3 @@ class MyApp extends StatelessWidget {
     );
   }
 }
-
-
-
-
-
-
-
