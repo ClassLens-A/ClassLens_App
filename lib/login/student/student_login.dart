@@ -1,3 +1,4 @@
+import 'package:classlens/home/student_home/home_screen.dart';
 import 'package:classlens/page_animations/slide_animation.dart';
 import 'package:flutter/material.dart';
 import 'package:classlens/login/student/student_signup_page.dart';
