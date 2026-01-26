@@ -1,6 +1,5 @@
 import 'dart:convert';
 import 'dart:io';
-import 'package:classlens/data_models/absentees_student.dart';
 import 'package:classlens/data_models/subjects.dart';
 import 'package:classlens/data_models/teacher_profile.dart';
 import 'package:classlens/data_models/teacher_subjects.dart';
@@ -9,6 +8,7 @@ import 'package:classlens/data_models/departments.dart';
 import 'package:classlens/data_models/task_status.dart';
 import 'package:classlens/data_models/student_list.dart';
 import 'package:classlens/global/config.dart';
+import '../data_models/present_absentees_student.dart';
 import '../global/global.dart';
 
 
@@ -94,6 +94,8 @@ class ApiServices{
       });
 
       final response = await http.post(url,headers: headers,body: body);
+
+      print(response.body);
 
       if(response.statusCode==200){
         print("mail sent");
@@ -280,11 +282,13 @@ class ApiServices{
     }
   }
 
-  static Future<Map<String,dynamic>> markAttendance({required final File imageFile, required final String departmentName, required final int semester,required final int year, required final String subject,required final int subjectID}) async {
+  static Future<Map<String,dynamic>> markAttendance({required final List<File> imageFiles, required final String departmentName, required final int semester,required final int year, required final String subject,required final int subjectID}) async {
     String endpoint = '$_baseUrl/markAttendance';
     final url = Uri.parse(endpoint);
     try {
       final request = http.MultipartRequest('POST', url);
+
+      print(userID);
 
       request.fields['departmentName'] = departmentName;
       request.fields['semester'] = semester.toString();
@@ -295,12 +299,14 @@ class ApiServices{
       print(subjectID);
       print(subject);
 
-      request.files.add(
-          await http.MultipartFile.fromPath(
-              'photo',
-              imageFile.path
-          )
-      );
+      for(var image in imageFiles) {
+        request.files.add(
+            await http.MultipartFile.fromPath(
+                'photo',
+                image.path
+            )
+        );
+      }
 
       print("sent the request");
       final streamedResponse = await request.send();
@@ -434,8 +440,8 @@ class ApiServices{
 
   }
 
-  static Future<List<AbsenteesStudents>> getAbsentStudents({required sessionID}) async{
-    String endpoint = "$_baseUrl/getAbsenteesList/";
+  static Future<List<PresentAbsenteesStudents>> getPresentAbsentStudents({required int sessionID,required bool isPresent}) async{
+    String endpoint = "$_baseUrl/getPresentAbsentList/";
     final url = Uri.parse(endpoint);
 
     const header ={
@@ -443,7 +449,8 @@ class ApiServices{
     };
 
     final body = jsonEncode({
-      'class_session_id':sessionID
+      'class_session_id':sessionID,
+      'isPresent':isPresent
     });
     try{
       final response = await http.post(
@@ -459,20 +466,20 @@ class ApiServices{
         if(students!=null){
           final List<dynamic> students = jsonBody["students"];
           print(response.body);
-          return students.map((json)=>AbsenteesStudents.fromJson(json)).toList();
+          return students.map((json)=>PresentAbsenteesStudents.fromJson(json)).toList();
         }
         else{
-          return Future.value(List<AbsenteesStudents>.empty());
+          return Future.value(List<PresentAbsenteesStudents>.empty());
         }
       }
       else{
         print(response.body);
-        return Future.value(List<AbsenteesStudents>.empty());
+        return Future.value(List<PresentAbsenteesStudents>.empty());
       }
     }
     catch(e){
       print(e.toString());
-      return Future.value(List<AbsenteesStudents>.empty());
+      return Future.value(List<PresentAbsenteesStudents>.empty());
     }
   }
 

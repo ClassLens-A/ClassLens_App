@@ -67,7 +67,7 @@ class _SplashScreenState extends State<SplashScreen>
                                       bool isLoggedIn = await getRememberMe();
 
                                       if(isLoggedIn){
-                                        Navigator.push(context, MaterialPageRoute(builder: (context)=> Home(teacherID: userID,)));
+                                        Navigator.pushReplacement(context, MaterialPageRoute(builder: (context)=> Home(teacherID: userID,)));
                                       }
                                       else {
                                         splashScreenNavigator(

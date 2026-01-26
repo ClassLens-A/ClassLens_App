@@ -43,6 +43,7 @@ class _TeacherOtpPageState extends State<TeacherOtpPage> {
   void initState() {
     super.initState();
     ApiServices.sendOpt(email: widget.email);
+    print("api-otp hit");
     _resetAndStartTimer();
   }
 
@@ -95,8 +96,9 @@ class _TeacherOtpPageState extends State<TeacherOtpPage> {
       bool response = await ApiServices.verifyOpt(email: widget.email, otp: int.parse(otp));
       if (response) {
         if (mounted) {
-          Navigator.of(context).popUntil((route) => route.isFirst);
-          navigatorWithAnimation(context, TeacherPasswordSetter(email: widget.email));
+          // Navigator.of(context).popUntil((route) => route.isFirst);
+          Navigator.pushReplacement(context, MaterialPageRoute(builder: (context)=> TeacherPasswordSetter(email: widget.email,)));
+         // navigatorWithAnimation(context, TeacherPasswordSetter(email: widget.email));
         }
       } else {
         ScaffoldMessenger.of(context).showSnackBar(

@@ -1,9 +1,9 @@
-import 'package:classlens/home/teacher_home/absentees_students_list.dart';
 import 'package:classlens/page_animations/slide_animation.dart';
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 import '../../data_models/class_session_data.dart';
 import '../../global/global.dart';
+import 'class_session_attendance.dart';
 
 
 const Color primaryTextColor = Color(0xFF1A2533);
@@ -83,7 +83,7 @@ class _AttendanceResult extends State<AttendanceResult> {
             stats: stats,
             onTap: () {
               print("Tapped on session ID: ${stats.classSessionId}");
-              navigatorWithAnimation(context, AbsenteesStudentList(sessionID: stats.classSessionId,subjectName: stats.subject,));
+              navigatorWithAnimation(context, ClassSessionAttendance(sessionID: stats.classSessionId,subjectName: stats.subject,));
             },
           );
         },
@@ -92,7 +92,7 @@ class _AttendanceResult extends State<AttendanceResult> {
   }
 
   Widget _buildStatCard({required SessionStats stats, required VoidCallback onTap}) {
-    // Using your test numbers
+
     final int presentCount = stats.presentCount ;
     final int absentCount = stats.absentCount;
     final int total = presentCount + absentCount;
@@ -129,7 +129,7 @@ class _AttendanceResult extends State<AttendanceResult> {
               ),
               const SizedBox(height: 4),
               Text(
-                // Safely format the date
+
                 stats.date == null
                     ? 'No Date Available'
                     : DateFormat.yMMMd().format(stats.date!),

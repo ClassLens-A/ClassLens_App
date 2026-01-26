@@ -9,7 +9,7 @@ const Color primaryTextColor = Color(0xFF1A2533);
 const Color secondaryTextColor = Color(0xFF6C757D);
 
 class ProcessingScreen extends StatefulWidget {
-  final File imageFile;
+  final List<File> imageFiles;
   final String departmentName;
   final int semester;
   final int year;
@@ -18,7 +18,7 @@ class ProcessingScreen extends StatefulWidget {
 
   const ProcessingScreen({
     super.key,
-    required this.imageFile,
+    required this.imageFiles,
     required this.departmentName,
     required this.semester,
     required this.year,
@@ -39,13 +39,15 @@ class _ProcessingScreenState extends State<ProcessingScreen> {
 
   Future<void> _startUpload() async {
     try {
+
       Map<String,dynamic> returnedUrl = await ApiServices.markAttendance(
-        imageFile: widget.imageFile,
+        imageFiles: widget.imageFiles,
         departmentName: widget.departmentName,
         semester: widget.semester,
         year: widget.year,
         subject: widget.subject,
-        subjectID: widget.subjectID
+        subjectID: widget.subjectID,
+
       );
       
       if (mounted) {

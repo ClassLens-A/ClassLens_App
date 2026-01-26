@@ -60,10 +60,8 @@ void main() async {
 
   runApp(
     ProviderScope(
-      child: DevicePreview(
-        enabled: true,
-        builder: (context) => MyApp(),
-      ),
+
+      child: MyApp(),
     ),
   );
 }

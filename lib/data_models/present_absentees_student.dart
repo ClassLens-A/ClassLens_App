@@ -1,16 +1,16 @@
-class AbsenteesStudents{
+class PresentAbsenteesStudents{
   final int studentID;
   final String studentName;
   final int studentPRN;
 
-  const AbsenteesStudents({
+  const PresentAbsenteesStudents({
     required this.studentID,
     required this.studentName,
     required this.studentPRN,
   });
 
-  factory AbsenteesStudents.fromJson(Map<String,dynamic> json){
-    return AbsenteesStudents(
+  factory PresentAbsenteesStudents.fromJson(Map<String,dynamic> json){
+    return PresentAbsenteesStudents(
         studentID: json["student_id"],
         studentName: json["student_name"],
         studentPRN: json["student_prn"]

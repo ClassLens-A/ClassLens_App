@@ -302,7 +302,19 @@ class _LoginPageState extends State<Login> {
           pref.setBool("rememberMe", isChecked);
           pref.setString("teacherName", result['teacherName']);
           pref.setInt("teacherID", result['teacherID']);
-          navigatorWithAnimation(context, Home(teacherName: result['teacherName'] as String?,teacherID: result['teacherID'] as int),);
+         // navigatorWithAnimation(context, Home(teacherName: result['teacherName'] as String?,teacherID: result['teacherID'] as int),);
+          Navigator.pushAndRemoveUntil(
+            context,
+            MaterialPageRoute(
+              builder: (context) => Home(
+                teacherName: result['teacherName'] as String?,
+                teacherID: result['teacherID'] as int,
+              ),
+            ),
+                (route) => false,
+          );
+
+
         } else {
           ScaffoldMessenger.of(context).showSnackBar(
             const SnackBar(

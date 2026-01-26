@@ -26,7 +26,7 @@ class AttendanceUploadScreen extends StatefulWidget {
 }
 
 class _AttendanceUploadScreenState extends State<AttendanceUploadScreen> {
-  XFile? _imageFile;
+  List<XFile> _imageFiles = [];
   String? _selectedDepartment;
   String? _selectedSubject;
   int? _selectedSubjectID;
@@ -82,21 +82,46 @@ class _AttendanceUploadScreenState extends State<AttendanceUploadScreen> {
   Future<void> _pickImage(ImageSource source) async {
     Navigator.of(context).pop();
     final picker = ImagePicker();
-    final XFile? pickedFile = await picker.pickImage(
-      source: source,
-      imageQuality: 85,
-    );
+    
+    if (source == ImageSource.gallery) {
+      final List<XFile> pickedFiles = await picker.pickMultiImage(
+        imageQuality: 85,
+      );
+      
+      if (pickedFiles.isNotEmpty) {
+        setState(() {
+          _imageFiles.addAll(pickedFiles);
+          if (_imageFiles.length > 3) {
+            _imageFiles = _imageFiles.sublist(0, 3);
+            ScaffoldMessenger.of(context).showSnackBar(
+              const SnackBar(content: Text('Maximum 3 images allowed')),
+            );
+          }
+        });
+      }
+    } else {
+      final XFile? pickedFile = await picker.pickImage(
+        source: source,
+        imageQuality: 85,
+      );
 
-    if (pickedFile != null) {
-      setState(() {
-        _imageFile = pickedFile;
-      });
+      if (pickedFile != null) {
+        setState(() {
+          if (_imageFiles.length < 3) {
+            _imageFiles.add(pickedFile);
+          } else {
+            ScaffoldMessenger.of(context).showSnackBar(
+              const SnackBar(content: Text('Maximum 3 images allowed')),
+            );
+          }
+        });
+      }
     }
   }
 
-  void _removeImage() {
+  void _removeImage(int index) {
     setState(() {
-      _imageFile = null;
+      _imageFiles.removeAt(index);
     });
   }
 
@@ -150,7 +175,7 @@ class _AttendanceUploadScreenState extends State<AttendanceUploadScreen> {
   }
 
   Future<void> _submitAttendance() async {
-    if (_imageFile == null ||
+    if (_imageFiles.isEmpty ||
         _selectedDepartment == null ||
         _selectedYear == null ||
         _selectedSemester == null||
@@ -173,7 +198,7 @@ class _AttendanceUploadScreenState extends State<AttendanceUploadScreen> {
         final result = await Navigator.of(context).push(
           MaterialPageRoute(
             builder: (context) => ProcessingScreen(
-              imageFile: File(_imageFile!.path),
+              imageFiles: _imageFiles.map((x) => File(x.path)).toList(),
               departmentName: _selectedDepartment!,
               semester: updatedSemester,
               year: updatedYear,
@@ -338,26 +363,119 @@ class _AttendanceUploadScreenState extends State<AttendanceUploadScreen> {
   }
 
   Widget _buildImagePickerBox() {
-    return GestureDetector(
-      onTap: _imageFile == null ? _showImageSourceActionSheet : null,
-      child: DottedBorder(
-        color: secondaryTextColor.withOpacity(0.5),
-        strokeWidth: 2,
-        dashPattern: const [8, 6],
-        borderType: BorderType.RRect,
-        radius: const Radius.circular(24),
-        child: Container(
-          height: 220,
-          width: double.infinity,
-          clipBehavior: Clip.antiAlias,
-          decoration: BoxDecoration(
-            borderRadius: BorderRadius.circular(24),
-            color: _imageFile == null
-                ? cardBackgroundColor
-                : Colors.transparent,
-          ),
-          child: _imageFile == null
-              ? Center(
+    return Column(
+      children: [
+        if (_imageFiles.isNotEmpty)
+          SizedBox(
+            height: 220,
+            child: ListView.builder(
+              scrollDirection: Axis.horizontal,
+              itemCount: _imageFiles.length + (_imageFiles.length < 3 ? 1 : 0),
+              itemBuilder: (context, index) {
+                if (index == _imageFiles.length) {
+                  // Add button
+                  return Padding(
+                    padding: const EdgeInsets.only(right: 16.0),
+                    child: GestureDetector(
+                      onTap: _showImageSourceActionSheet,
+                      child: DottedBorder(
+                        color: secondaryTextColor.withOpacity(0.5),
+                        strokeWidth: 2,
+                        dashPattern: const [8, 6],
+                        borderType: BorderType.RRect,
+                        radius: const Radius.circular(24),
+                        child: Container(
+                          width: 160,
+                          height: 220,
+                          decoration: BoxDecoration(
+                            borderRadius: BorderRadius.circular(24),
+                            color: cardBackgroundColor,
+                          ),
+                          child: Center(
+                            child: Column(
+                              mainAxisAlignment: MainAxisAlignment.center,
+                              children: [
+                                Icon(
+                                  Icons.add_a_photo_outlined,
+                                  size: 40,
+                                  color: accentColor.withOpacity(0.8),
+                                ),
+                                const SizedBox(height: 8),
+                                const Text(
+                                  'Add More',
+                                  style: TextStyle(
+                                    fontWeight: FontWeight.bold,
+                                    color: primaryTextColor,
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ),
+                        ),
+                      ),
+                    ),
+                  );
+                }
+                
+                return Padding(
+                  padding: const EdgeInsets.only(right: 16.0),
+                  child: Stack(
+                    children: [
+                      Container(
+                        width: 160,
+                        height: 220,
+                        clipBehavior: Clip.antiAlias,
+                        decoration: BoxDecoration(
+                          borderRadius: BorderRadius.circular(24),
+                          image: DecorationImage(
+                            image: FileImage(File(_imageFiles[index].path)),
+                            fit: BoxFit.cover,
+                          ),
+                        ),
+                      ),
+                      Positioned(
+                        top: 8,
+                        right: 8,
+                        child: GestureDetector(
+                          onTap: () => _removeImage(index),
+                          child: Container(
+                            padding: const EdgeInsets.all(4),
+                            decoration: BoxDecoration(
+                              color: Colors.black.withOpacity(0.5),
+                              shape: BoxShape.circle,
+                            ),
+                            child: const Icon(
+                              Icons.close,
+                              color: Colors.white,
+                              size: 20,
+                            ),
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
+                );
+              },
+            ),
+          )
+        else
+          GestureDetector(
+            onTap: _showImageSourceActionSheet,
+            child: DottedBorder(
+              color: secondaryTextColor.withOpacity(0.5),
+              strokeWidth: 2,
+              dashPattern: const [8, 6],
+              borderType: BorderType.RRect,
+              radius: const Radius.circular(24),
+              child: Container(
+                height: 220,
+                width: double.infinity,
+                clipBehavior: Clip.antiAlias,
+                decoration: BoxDecoration(
+                  borderRadius: BorderRadius.circular(24),
+                  color: cardBackgroundColor,
+                ),
+                child: Center(
                   child: Padding(
                     padding: const EdgeInsets.symmetric(horizontal: 16.0),
                     child: Column(
@@ -369,10 +487,9 @@ class _AttendanceUploadScreenState extends State<AttendanceUploadScreen> {
                           color: accentColor.withOpacity(0.8),
                         ),
                         const SizedBox(height: 12),
-                        // MODIFIED: Wrapped with FittedBox
                         const FittedBox(
                           child: Text(
-                            'Select Attendance Image',
+                            'Select Attendance Images',
                             style: TextStyle(
                               fontSize: 16,
                               fontWeight: FontWeight.bold,
@@ -381,10 +498,9 @@ class _AttendanceUploadScreenState extends State<AttendanceUploadScreen> {
                           ),
                         ),
                         const SizedBox(height: 4),
-                        // MODIFIED: Wrapped with FittedBox
                         FittedBox(
                           child: Text(
-                            'Tap here to upload or take a photo',
+                            'Tap here to upload (Max 3)',
                             style: TextStyle(
                               color: secondaryTextColor.withOpacity(0.8),
                             ),
@@ -393,30 +509,11 @@ class _AttendanceUploadScreenState extends State<AttendanceUploadScreen> {
                       ],
                     ),
                   ),
-                )
-              : Stack(
-                  fit: StackFit.expand,
-                  children: [
-                    Image.file(File(_imageFile!.path), fit: BoxFit.cover),
-                    Positioned(
-                      top: 12,
-                      right: 12,
-                      child: IconButton(
-                        icon: const Icon(
-                          Icons.cancel,
-                          color: Colors.white,
-                          size: 28,
-                        ),
-                        onPressed: _removeImage,
-                        style: IconButton.styleFrom(
-                          backgroundColor: Colors.black.withOpacity(0.5),
-                        ),
-                      ),
-                    ),
-                  ],
                 ),
-        ),
-      ),
+              ),
+            ),
+          ),
+      ],
     );
   }
 
