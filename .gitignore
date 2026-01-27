@@ -74,3 +74,6 @@ coverage/
 
 # Crash logs
 crash.log
+
+# ignore firebase config
+android/app/firebase-service-account.json
