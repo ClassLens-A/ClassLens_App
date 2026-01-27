@@ -17,29 +17,17 @@ import 'package:flutter/foundation.dart'
 class DefaultFirebaseOptions {
   static FirebaseOptions get currentPlatform {
     if (kIsWeb) {
-      throw UnsupportedError(
-        'DefaultFirebaseOptions have not been configured for web - '
-        'you can reconfigure this by running the FlutterFire CLI again.',
-      );
+      return web;
     }
     switch (defaultTargetPlatform) {
       case TargetPlatform.android:
         return android;
       case TargetPlatform.iOS:
-        throw UnsupportedError(
-          'DefaultFirebaseOptions have not been configured for ios - '
-          'you can reconfigure this by running the FlutterFire CLI again.',
-        );
+        return ios;
       case TargetPlatform.macOS:
-        throw UnsupportedError(
-          'DefaultFirebaseOptions have not been configured for macos - '
-          'you can reconfigure this by running the FlutterFire CLI again.',
-        );
+        return macos;
       case TargetPlatform.windows:
-        throw UnsupportedError(
-          'DefaultFirebaseOptions have not been configured for windows - '
-          'you can reconfigure this by running the FlutterFire CLI again.',
-        );
+        return windows;
       case TargetPlatform.linux:
         throw UnsupportedError(
           'DefaultFirebaseOptions have not been configured for linux - '
@@ -59,4 +47,41 @@ class DefaultFirebaseOptions {
     projectId: 'claens-f7490',
     storageBucket: 'claens-f7490.firebasestorage.app',
   );
+
+  static const FirebaseOptions web = FirebaseOptions(
+    apiKey: 'AIzaSyBcPSCg1-SH45mgYihELRFC0NiJ8q-39xo',
+    appId: '1:548993477348:web:c8c729e587fe0e12b51af1',
+    messagingSenderId: '548993477348',
+    projectId: 'claens-f7490',
+    authDomain: 'claens-f7490.firebaseapp.com',
+    storageBucket: 'claens-f7490.firebasestorage.app',
+  );
+
+  static const FirebaseOptions macos = FirebaseOptions(
+    apiKey: 'AIzaSyBc7EIohtAbWqK6aeWhb50kQZJRwzkigTg',
+    appId: '1:548993477348:ios:7d56ef152162c8fdb51af1',
+    messagingSenderId: '548993477348',
+    projectId: 'claens-f7490',
+    storageBucket: 'claens-f7490.firebasestorage.app',
+    iosBundleId: 'com.example.classlens',
+  );
+
+  static const FirebaseOptions ios = FirebaseOptions(
+    apiKey: 'AIzaSyBc7EIohtAbWqK6aeWhb50kQZJRwzkigTg',
+    appId: '1:548993477348:ios:7d56ef152162c8fdb51af1',
+    messagingSenderId: '548993477348',
+    projectId: 'claens-f7490',
+    storageBucket: 'claens-f7490.firebasestorage.app',
+    iosBundleId: 'com.example.classlens',
+  );
+
+  static const FirebaseOptions windows = FirebaseOptions(
+    apiKey: 'AIzaSyBcPSCg1-SH45mgYihELRFC0NiJ8q-39xo',
+    appId: '1:548993477348:web:28e49af3d6e04e27b51af1',
+    messagingSenderId: '548993477348',
+    projectId: 'claens-f7490',
+    authDomain: 'claens-f7490.firebaseapp.com',
+    storageBucket: 'claens-f7490.firebasestorage.app',
+  );
+
 }
