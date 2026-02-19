@@ -32,9 +32,19 @@ class _SubjectDetailScreenState extends State<SubjectDetailScreen> {
 
     try {
       final studentId = await getStudentID();
-      final subjectId = widget.subject['id'] ?? widget.subject['subject_id'];
       
-      if (subjectId == null) {
+      // Validate studentId before making API call
+      if (studentId <= 0) {
+        setState(() {
+          _error = 'Invalid student ID. Please log in again.';
+          _isLoading = false;
+        });
+        return;
+      }
+      
+      final dynamic subjectIdRaw = widget.subject['id'] ?? widget.subject['subject_id'];
+      
+      if (subjectIdRaw == null) {
         // If no subject ID, use the history data from the subject if available
         if (widget.subject['history'] != null) {
           setState(() {
@@ -47,6 +57,32 @@ class _SubjectDetailScreenState extends State<SubjectDetailScreen> {
             _isLoading = false;
           });
         }
+        return;
+      }
+      
+      // Type safety: Convert subjectId to int
+      int subjectId;
+      try {
+        if (subjectIdRaw is int) {
+          subjectId = subjectIdRaw;
+        } else if (subjectIdRaw is String) {
+          subjectId = int.parse(subjectIdRaw);
+        } else {
+          subjectId = int.parse(subjectIdRaw.toString());
+        }
+        
+        if (subjectId <= 0) {
+          setState(() {
+            _error = 'Invalid subject ID';
+            _isLoading = false;
+          });
+          return;
+        }
+      } catch (e) {
+        setState(() {
+          _error = 'Invalid subject ID format';
+          _isLoading = false;
+        });
         return;
       }
 

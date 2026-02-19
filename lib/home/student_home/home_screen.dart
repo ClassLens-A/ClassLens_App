@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:classlens/global/global.dart';
+import 'package:classlens/login/login_selector.dart' show LoginSelector;
 import 'student_colors.dart';
 import 'student_dashboard.dart';
 import 'attendance_history.dart';
@@ -27,6 +28,19 @@ class _StudentHomeScreenState extends State<StudentHomeScreen> {
     final studentName = await getStudentName();
     final studentId = await getStudentID();
     final prn = await getStudentPRN();
+
+    // Validate studentId before proceeding
+    if (studentId <= 0) {
+      // Invalid student ID, clear session and redirect to login
+      await clearUserSession();
+      if (mounted) {
+        Navigator.of(context).pushAndRemoveUntil(
+          MaterialPageRoute(builder: (context) => const LoginSelector()),
+          (route) => false,
+        );
+      }
+      return;
+    }
 
     if (mounted) {
       setState(() {

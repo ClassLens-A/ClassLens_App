@@ -8,6 +8,10 @@ import 'package:http_parser/http_parser.dart';
 import 'package:classlens/data_models/departments.dart';
 import 'package:classlens/data_models/task_status.dart';
 import 'package:classlens/data_models/student_list.dart';
+import 'package:classlens/data_models/student_profile.dart';
+import 'package:classlens/data_models/student_dashboard.dart';
+import 'package:classlens/data_models/attendance_history.dart';
+import 'package:classlens/data_models/subject_attendance.dart';
 import 'package:classlens/global/config.dart';
 import '../data_models/present_absentees_student.dart';
 import '../global/global.dart';
@@ -549,6 +553,14 @@ class ApiServices {
   static Future<Map<String, dynamic>> getStudentDashboard({
     required int studentId,
   }) async {
+    // Validate studentId
+    if (studentId <= 0) {
+      return {
+        'status': false,
+        'message': 'Invalid student ID',
+      };
+    }
+
     String endpoint = "$_baseUrl/student/dashboard/";
     final url = Uri.parse(endpoint);
 
@@ -559,10 +571,13 @@ class ApiServices {
       final response = await http.post(url, headers: headers, body: body);
 
       if (response.statusCode == 200) {
-        final data = jsonDecode(response.body);
+        final jsonData = jsonDecode(response.body);
+        final dashboard = StudentDashboard.fromJson(jsonData);
         return {
           'status': true,
-          'data': data,
+          'dashboard': dashboard,
+          // Keep backward compatibility with existing code
+          'data': jsonData,
         };
       } else {
         final errorData = jsonDecode(response.body);
@@ -714,6 +729,14 @@ class ApiServices {
   static Future<Map<String, dynamic>> getStudentProfile({
     required int studentId,
   }) async {
+    // Validate studentId
+    if (studentId <= 0) {
+      return {
+        'status': false,
+        'message': 'Invalid student ID',
+      };
+    }
+
     String endpoint = "$_baseUrl/student/profile/";
     final url = Uri.parse(endpoint);
 
@@ -724,10 +747,13 @@ class ApiServices {
       final response = await http.post(url, headers: headers, body: body);
 
       if (response.statusCode == 200) {
-        final data = jsonDecode(response.body);
+        final jsonData = jsonDecode(response.body);
+        final profile = StudentProfile.fromJson(jsonData);
         return {
           'status': true,
-          'data': data,
+          'profile': profile,
+          // Keep backward compatibility with existing code
+          'data': jsonData,
         };
       } else {
         final errorData = jsonDecode(response.body);
@@ -748,27 +774,55 @@ class ApiServices {
   /// Fetches student attendance history for a specific date range
   static Future<Map<String, dynamic>> getStudentAttendanceHistory({
     required int studentId,
-    DateTime? startDate,
-    DateTime? endDate,
+    required DateTime startDate,
+    required DateTime endDate,
   }) async {
+    // Validate studentId
+    if (studentId <= 0) {
+      return {
+        'status': false,
+        'message': 'Invalid student ID',
+      };
+    }
+
+    // Validate date range
+    if (endDate.isBefore(startDate)) {
+      return {
+        'status': false,
+        'message': 'End date must be after start date',
+      };
+    }
+
+    // Validate dates are not in the future
+    final now = DateTime.now();
+    if (startDate.isAfter(now) || endDate.isAfter(now)) {
+      return {
+        'status': false,
+        'message': 'Dates cannot be in the future',
+      };
+    }
+
     String endpoint = "$_baseUrl/student/attendance/history/";
     final url = Uri.parse(endpoint);
 
     const headers = {'Content-Type': 'application/json; charset=UTF-8'};
     final body = jsonEncode({
       'student_id': studentId,
-      if (startDate != null) 'start_date': startDate.toIso8601String(),
-      if (endDate != null) 'end_date': endDate.toIso8601String(),
+      'start_date': startDate.toIso8601String(),
+      'end_date': endDate.toIso8601String(),
     });
 
     try {
       final response = await http.post(url, headers: headers, body: body);
 
       if (response.statusCode == 200) {
-        final data = jsonDecode(response.body);
+        final jsonData = jsonDecode(response.body);
+        final history = AttendanceHistory.fromJson(jsonData);
         return {
           'status': true,
-          'data': data,
+          'history': history,
+          // Keep backward compatibility with existing code
+          'data': jsonData,
         };
       } else {
         final errorData = jsonDecode(response.body);
@@ -791,6 +845,22 @@ class ApiServices {
     required int studentId,
     required int subjectId,
   }) async {
+    // Validate studentId
+    if (studentId <= 0) {
+      return {
+        'status': false,
+        'message': 'Invalid student ID',
+      };
+    }
+
+    // Validate subjectId
+    if (subjectId <= 0) {
+      return {
+        'status': false,
+        'message': 'Invalid subject ID',
+      };
+    }
+
     String endpoint = "$_baseUrl/student/subject/attendance/";
     final url = Uri.parse(endpoint);
 
@@ -804,10 +874,13 @@ class ApiServices {
       final response = await http.post(url, headers: headers, body: body);
 
       if (response.statusCode == 200) {
-        final data = jsonDecode(response.body);
+        final jsonData = jsonDecode(response.body);
+        final attendance = SubjectAttendance.fromJson(jsonData);
         return {
           'status': true,
-          'data': data,
+          'attendance': attendance,
+          // Keep backward compatibility with existing code
+          'data': jsonData,
         };
       } else {
         final errorData = jsonDecode(response.body);

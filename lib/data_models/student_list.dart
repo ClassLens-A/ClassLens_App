@@ -14,12 +14,17 @@ class StudentList{
       });
 
       factory StudentList.fromJson(Map<String, dynamic> json) {
+        // Ensure attendance_percentage is converted to double to handle both int and double from API
+        final num attendancePercentageRaw = json['attendance_percentage'] is num
+            ? json['attendance_percentage'] as num
+            : 0.0;
+        
         return StudentList(
           studentID: json['student_id'],
           studentName: json['student_name'],
           totalClasses: json['total_classes'],
           attendedClasses: json['attended_classes'],
-          attendancePercentage: json['attendance_percentage'],
+          attendancePercentage: attendancePercentageRaw.toDouble(),
         );
       }
 }

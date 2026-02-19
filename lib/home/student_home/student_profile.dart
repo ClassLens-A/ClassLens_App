@@ -35,6 +35,16 @@ class _StudentProfileTabState extends State<StudentProfileTab> {
 
     try {
       final studentId = await getStudentID();
+      
+      // Validate studentId before making API call
+      if (studentId <= 0) {
+        setState(() {
+          _error = 'Invalid student ID. Please log in again.';
+          _isLoading = false;
+        });
+        return;
+      }
+      
       final result = await ApiServices.getStudentProfile(studentId: studentId);
 
       if (result['status'] == true) {
@@ -266,7 +276,11 @@ class _StudentProfileTabState extends State<StudentProfileTab> {
   }
 
   Widget _buildStatsRow() {
-    final attendancePercentage = _profileData['attendance_percentage'] ?? 0.0;
+    // Ensure attendance_percentage is converted to double to handle both int and double from API
+    final num attendancePercentageRaw = _profileData['attendance_percentage'] is num
+        ? _profileData['attendance_percentage'] as num
+        : 0.0;
+    final double attendancePercentage = attendancePercentageRaw.toDouble();
     final totalClasses = _profileData['total_classes'] ?? 0;
     return Padding(
       padding: const EdgeInsets.symmetric(vertical: 20.0, horizontal: 16.0),

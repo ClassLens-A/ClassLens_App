@@ -31,6 +31,16 @@ class _AttendanceHistoryTabState extends State<AttendanceHistoryTab> {
 
     try {
       final studentId = await getStudentID();
+      
+      // Validate studentId before making API call
+      if (studentId <= 0) {
+        setState(() {
+          _error = 'Invalid student ID. Please log in again.';
+          _isLoading = false;
+        });
+        return;
+      }
+      
       // Load last 30 days of data
       final startDate = DateTime.now().subtract(const Duration(days: 30));
       final result = await ApiServices.getStudentAttendanceHistory(
