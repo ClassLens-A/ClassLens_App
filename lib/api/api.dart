@@ -709,4 +709,119 @@ class ApiServices {
       return false;
     }
   }
+
+  /// Fetches student profile details
+  static Future<Map<String, dynamic>> getStudentProfile({
+    required int studentId,
+  }) async {
+    String endpoint = "$_baseUrl/student/profile/";
+    final url = Uri.parse(endpoint);
+
+    const headers = {'Content-Type': 'application/json; charset=UTF-8'};
+    final body = jsonEncode({'student_id': studentId});
+
+    try {
+      final response = await http.post(url, headers: headers, body: body);
+
+      if (response.statusCode == 200) {
+        final data = jsonDecode(response.body);
+        return {
+          'status': true,
+          'data': data,
+        };
+      } else {
+        final errorData = jsonDecode(response.body);
+        return {
+          'status': false,
+          'message': errorData['detail'] ?? 'Failed to load profile',
+        };
+      }
+    } catch (e) {
+      print("Error fetching student profile: $e");
+      return {
+        'status': false,
+        'message': 'Network error. Please try again.',
+      };
+    }
+  }
+
+  /// Fetches student attendance history for a specific date range
+  static Future<Map<String, dynamic>> getStudentAttendanceHistory({
+    required int studentId,
+    DateTime? startDate,
+    DateTime? endDate,
+  }) async {
+    String endpoint = "$_baseUrl/student/attendance/history/";
+    final url = Uri.parse(endpoint);
+
+    const headers = {'Content-Type': 'application/json; charset=UTF-8'};
+    final body = jsonEncode({
+      'student_id': studentId,
+      if (startDate != null) 'start_date': startDate.toIso8601String(),
+      if (endDate != null) 'end_date': endDate.toIso8601String(),
+    });
+
+    try {
+      final response = await http.post(url, headers: headers, body: body);
+
+      if (response.statusCode == 200) {
+        final data = jsonDecode(response.body);
+        return {
+          'status': true,
+          'data': data,
+        };
+      } else {
+        final errorData = jsonDecode(response.body);
+        return {
+          'status': false,
+          'message': errorData['detail'] ?? 'Failed to load attendance history',
+        };
+      }
+    } catch (e) {
+      print("Error fetching attendance history: $e");
+      return {
+        'status': false,
+        'message': 'Network error. Please try again.',
+      };
+    }
+  }
+
+  /// Fetches detailed attendance for a specific subject
+  static Future<Map<String, dynamic>> getSubjectAttendanceDetails({
+    required int studentId,
+    required int subjectId,
+  }) async {
+    String endpoint = "$_baseUrl/student/subject/attendance/";
+    final url = Uri.parse(endpoint);
+
+    const headers = {'Content-Type': 'application/json; charset=UTF-8'};
+    final body = jsonEncode({
+      'student_id': studentId,
+      'subject_id': subjectId,
+    });
+
+    try {
+      final response = await http.post(url, headers: headers, body: body);
+
+      if (response.statusCode == 200) {
+        final data = jsonDecode(response.body);
+        return {
+          'status': true,
+          'data': data,
+        };
+      } else {
+        final errorData = jsonDecode(response.body);
+        return {
+          'status': false,
+          'message': errorData['detail'] ?? 'Failed to load subject details',
+        };
+      }
+    } catch (e) {
+      print("Error fetching subject attendance: $e");
+      return {
+        'status': false,
+        'message': 'Network error. Please try again.',
+      };
+    }
+  }
 }

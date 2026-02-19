@@ -1,49 +1,78 @@
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
+import 'package:classlens/api/api.dart';
+import 'package:classlens/global/global.dart';
 import 'student_colors.dart';
 
-class SubjectDetailScreen extends StatelessWidget {
+class SubjectDetailScreen extends StatefulWidget {
   final Map<String, dynamic> subject;
 
   const SubjectDetailScreen({super.key, required this.subject});
 
-  // Vyom's actual attendance history by subject (PRN: 8022054043)
-  List<Map<String, dynamic>> _getHistory() {
-    final subjectName = subject['name'] as String;
-    
-    if (subjectName.contains('Applied Mathematics')) {
-      return [
-        {"date": DateTime(2025, 11, 29, 0, 33), "status": "Present"},
-        {"date": DateTime(2025, 11, 28, 23, 51), "status": "Present"},
-        {"date": DateTime(2025, 11, 28, 23, 36), "status": "Present"},
-        {"date": DateTime(2025, 11, 28, 17, 1), "status": "Present"},
-        {"date": DateTime(2025, 11, 28, 16, 3), "status": "Present"},
-        {"date": DateTime(2025, 11, 26, 15, 12), "status": "Present"},
-        {"date": DateTime(2025, 11, 26, 15, 9), "status": "Present"},
-        {"date": DateTime(2025, 11, 25, 16, 11), "status": "Present"},
-        {"date": DateTime(2025, 11, 25, 16, 9), "status": "Absent"},
-        {"date": DateTime(2025, 11, 25, 15, 58), "status": "Present"},
-        {"date": DateTime(2025, 11, 25, 15, 53), "status": "Absent"},
-        {"date": DateTime(2025, 11, 24, 0, 14), "status": "Present"},
-        {"date": DateTime(2025, 11, 23, 23, 56), "status": "Present"},
-        {"date": DateTime(2025, 11, 23, 23, 46), "status": "Absent"},
-        {"date": DateTime(2025, 11, 23, 23, 43), "status": "Absent"},
-        {"date": DateTime(2025, 11, 23, 20, 25), "status": "Present"},
-        {"date": DateTime(2025, 11, 23, 20, 17), "status": "Absent"},
-        {"date": DateTime(2025, 11, 23, 20, 12), "status": "Absent"},
-        {"date": DateTime(2025, 11, 23, 20, 7), "status": "Absent"},
-        {"date": DateTime(2025, 11, 23, 19, 54), "status": "Absent"},
-        {"date": DateTime(2025, 11, 23, 19, 46), "status": "Absent"},
-      ];
-    } else if (subjectName.contains('Electronics')) {
-      return [
-        {"date": DateTime(2025, 11, 25, 23, 55), "status": "Absent"},
-        {"date": DateTime(2025, 11, 25, 16, 16), "status": "Present"},
-        {"date": DateTime(2025, 11, 24, 0, 16), "status": "Present"},
-      ];
+  @override
+  State<SubjectDetailScreen> createState() => _SubjectDetailScreenState();
+}
+
+class _SubjectDetailScreenState extends State<SubjectDetailScreen> {
+  bool _isLoading = true;
+  List<Map<String, dynamic>> _attendanceHistory = [];
+  String _error = '';
+
+  @override
+  void initState() {
+    super.initState();
+    _loadSubjectDetails();
+  }
+
+  Future<void> _loadSubjectDetails() async {
+    setState(() {
+      _isLoading = true;
+      _error = '';
+    });
+
+    try {
+      final studentId = await getStudentID();
+      final subjectId = widget.subject['id'] ?? widget.subject['subject_id'];
+      
+      if (subjectId == null) {
+        // If no subject ID, use the history data from the subject if available
+        if (widget.subject['history'] != null) {
+          setState(() {
+            _attendanceHistory = List<Map<String, dynamic>>.from(widget.subject['history']);
+            _isLoading = false;
+          });
+        } else {
+          setState(() {
+            _error = 'No subject ID provided';
+            _isLoading = false;
+          });
+        }
+        return;
+      }
+
+      final result = await ApiServices.getSubjectAttendanceDetails(
+        studentId: studentId,
+        subjectId: subjectId,
+      );
+
+      if (result['status'] == true) {
+        final data = result['data'];
+        setState(() {
+          _attendanceHistory = List<Map<String, dynamic>>.from(data['attendance_records'] ?? []);
+          _isLoading = false;
+        });
+      } else {
+        setState(() {
+          _error = result['message'] ?? 'Failed to load subject details';
+          _isLoading = false;
+        });
+      }
+    } catch (e) {
+      setState(() {
+        _error = 'Network error. Please try again.';
+        _isLoading = false;
+      });
     }
-    
-    return [];
   }
 
   @override
@@ -51,12 +80,16 @@ class SubjectDetailScreen extends StatelessWidget {
     return Scaffold(
       backgroundColor: primaryBackgroundColor,
       appBar: AppBar(
-        title: Text(subject['name'], style: const TextStyle(color: primaryTextColor, fontSize: 18, fontWeight: FontWeight.bold)),
+        title: Text(widget.subject['name'], style: const TextStyle(color: primaryTextColor, fontSize: 18, fontWeight: FontWeight.bold)),
         backgroundColor: Colors.transparent,
         elevation: 0,
         iconTheme: const IconThemeData(color: primaryTextColor),
       ),
-      body: SingleChildScrollView(
+      body: _isLoading
+          ? const Center(child: CircularProgressIndicator(color: accentColor))
+          : _error.isNotEmpty
+              ? _buildErrorState()
+              : SingleChildScrollView(
         padding: const EdgeInsets.all(16),
         child: Column(
           children: [
@@ -71,11 +104,11 @@ class SubjectDetailScreen extends StatelessWidget {
               child: Row(
                 mainAxisAlignment: MainAxisAlignment.spaceAround,
                 children: [
-                  _buildDetailStat("Total", "${subject['total']}"),
+                  _buildDetailStat("Total", "${widget.subject['total']}"),
                   Container(width: 1, height: 40, color: Colors.white30),
-                  _buildDetailStat("Attended", "${subject['attended']}"),
+                  _buildDetailStat("Attended", "${widget.subject['attended']}"),
                   Container(width: 1, height: 40, color: Colors.white30),
-                  _buildDetailStat("Percentage", "${subject['percentage'].toInt()}%"),
+                  _buildDetailStat("Percentage", "${widget.subject['percentage'].toInt()}%"),
                 ],
               ),
             ),
@@ -86,40 +119,75 @@ class SubjectDetailScreen extends StatelessWidget {
                 const SizedBox(width: 8),
                 const Text("Attendance Log", style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: primaryTextColor)),
                 const Spacer(),
-                Text("Teacher: ${subject['teacher']}", style: const TextStyle(fontSize: 12, color: secondaryTextColor)),
+                Text("Teacher: ${widget.subject['teacher']}", style: const TextStyle(fontSize: 12, color: secondaryTextColor)),
               ],
             ),
             const SizedBox(height: 12),
 
             // List of Sessions
-            ListView.builder(
-              shrinkWrap: true,
-              physics: const NeverScrollableScrollPhysics(),
-              itemCount: _getHistory().length,
-              itemBuilder: (context, index) {
-                final session = _getHistory()[index];
-                bool isPresent = session['status'] == "Present";
+            _attendanceHistory.isEmpty
+                ? Center(
+                    child: Padding(
+                      padding: const EdgeInsets.all(40),
+                      child: Column(
+                        children: [
+                          Icon(Icons.inbox_outlined, size: 60, color: secondaryTextColor.withOpacity(0.3)),
+                          const SizedBox(height: 16),
+                          Text("No attendance records yet", style: TextStyle(color: secondaryTextColor.withOpacity(0.5))),
+                        ],
+                      ),
+                    ),
+                  )
+                : ListView.builder(
+                    shrinkWrap: true,
+                    physics: const NeverScrollableScrollPhysics(),
+                    itemCount: _attendanceHistory.length,
+                    itemBuilder: (context, index) {
+                      final session = _attendanceHistory[index];
+                      final date = session['date'] is DateTime
+                          ? session['date']
+                          : DateTime.tryParse(session['date'].toString()) ?? DateTime.now();
+                      bool isPresent = session['status'] == "Present";
 
-                return Container(
-                  margin: const EdgeInsets.only(bottom: 10),
-                  padding: const EdgeInsets.all(16),
-                  decoration: BoxDecoration(color: cardBackgroundColor, borderRadius: BorderRadius.circular(12)),
-                  child: Row(
-                    children: [
-                      Text(DateFormat.yMMMd().format(session['date']), style: const TextStyle(fontWeight: FontWeight.bold, color: primaryTextColor)),
-                      const Spacer(),
-                      Container(
-                        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
-                        decoration: BoxDecoration(color: (isPresent ? successColor : attentionColor).withOpacity(0.1), borderRadius: BorderRadius.circular(8)),
-                        child: Text(session['status'], style: TextStyle(color: isPresent ? successColor : attentionColor, fontWeight: FontWeight.bold)),
-                      )
-                    ],
-                  ),
-                );
-              },
-            )
+                      return Container(
+                        margin: const EdgeInsets.only(bottom: 10),
+                        padding: const EdgeInsets.all(16),
+                        decoration: BoxDecoration(color: cardBackgroundColor, borderRadius: BorderRadius.circular(12)),
+                        child: Row(
+                          children: [
+                            Text(DateFormat.yMMMd().format(date), style: const TextStyle(fontWeight: FontWeight.bold, color: primaryTextColor)),
+                            const Spacer(),
+                            Container(
+                              padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                              decoration: BoxDecoration(color: (isPresent ? successColor : attentionColor).withOpacity(0.1), borderRadius: BorderRadius.circular(8)),
+                              child: Text(session['status'], style: TextStyle(color: isPresent ? successColor : attentionColor, fontWeight: FontWeight.bold)),
+                            )
+                          ],
+                        ),
+                      );
+                    },
+                  )
           ],
         ),
+      ),
+    );
+  }
+
+  Widget _buildErrorState() {
+    return Center(
+      child: Column(
+        mainAxisAlignment: MainAxisAlignment.center,
+        children: [
+          Icon(Icons.error_outline, size: 60, color: attentionColor.withOpacity(0.5)),
+          const SizedBox(height: 16),
+          Text(_error, style: const TextStyle(color: secondaryTextColor)),
+          const SizedBox(height: 16),
+          ElevatedButton(
+            onPressed: _loadSubjectDetails,
+            style: ElevatedButton.styleFrom(backgroundColor: accentColor),
+            child: const Text('Retry', style: TextStyle(color: Colors.white)),
+          ),
+        ],
       ),
     );
   }

@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
+import 'package:classlens/api/api.dart';
+import 'package:classlens/global/global.dart';
 import 'student_colors.dart';
 
 class AttendanceHistoryTab extends StatefulWidget {
@@ -11,46 +13,68 @@ class AttendanceHistoryTab extends StatefulWidget {
 
 class _AttendanceHistoryTabState extends State<AttendanceHistoryTab> {
   DateTime _selectedDate = DateTime.now();
+  bool _isLoading = false;
+  Map<String, List<Map<String, dynamic>>> _historyData = {};
+  String _error = '';
 
-  // Vyom's actual attendance data (PRN: 8022054043)
-  final Map<String, List<Map<String, dynamic>>> _historyData = {
-    "2025-11-29": [
-      {"subject": "Applied Mathematics-III-CSE", "status": "Present", "time": "12:33 AM"},
-    ],
-    "2025-11-28": [
-      {"subject": "Applied Mathematics-III-CSE", "status": "Present", "time": "11:51 PM"},
-      {"subject": "Applied Mathematics-III-CSE", "status": "Present", "time": "11:36 PM"},
-      {"subject": "Applied Mathematics-III-CSE", "status": "Present", "time": "05:01 PM"},
-      {"subject": "Applied Mathematics-III-CSE", "status": "Present", "time": "04:03 PM"},
-    ],
-    "2025-11-26": [
-      {"subject": "Applied Mathematics-III-CSE", "status": "Present", "time": "03:12 PM"},
-      {"subject": "Applied Mathematics-III-CSE", "status": "Present", "time": "03:09 PM"},
-    ],
-    "2025-11-25": [
-      {"subject": "Electronics Engineering-CSE", "status": "Absent", "time": "11:55 PM"},
-      {"subject": "Electronics Engineering-CSE", "status": "Present", "time": "04:16 PM"},
-      {"subject": "Applied Mathematics-III-CSE", "status": "Present", "time": "04:11 PM"},
-      {"subject": "Applied Mathematics-III-CSE", "status": "Absent", "time": "04:09 PM"},
-      {"subject": "Applied Mathematics-III-CSE", "status": "Present", "time": "03:58 PM"},
-      {"subject": "Applied Mathematics-III-CSE", "status": "Absent", "time": "03:53 PM"},
-    ],
-    "2025-11-24": [
-      {"subject": "Electronics Engineering-CSE", "status": "Present", "time": "12:16 AM"},
-      {"subject": "Applied Mathematics-III-CSE", "status": "Present", "time": "12:14 AM"},
-    ],
-    "2025-11-23": [
-      {"subject": "Applied Mathematics-III-CSE", "status": "Present", "time": "11:56 PM"},
-      {"subject": "Applied Mathematics-III-CSE", "status": "Absent", "time": "11:46 PM"},
-      {"subject": "Applied Mathematics-III-CSE", "status": "Absent", "time": "11:43 PM"},
-      {"subject": "Applied Mathematics-III-CSE", "status": "Present", "time": "08:25 PM"},
-      {"subject": "Applied Mathematics-III-CSE", "status": "Absent", "time": "08:17 PM"},
-      {"subject": "Applied Mathematics-III-CSE", "status": "Absent", "time": "08:12 PM"},
-      {"subject": "Applied Mathematics-III-CSE", "status": "Absent", "time": "08:07 PM"},
-      {"subject": "Applied Mathematics-III-CSE", "status": "Absent", "time": "07:54 PM"},
-      {"subject": "Applied Mathematics-III-CSE", "status": "Absent", "time": "07:46 PM"},
-    ],
-  };
+  @override
+  void initState() {
+    super.initState();
+    _loadAttendanceHistory();
+  }
+
+  Future<void> _loadAttendanceHistory() async {
+    setState(() {
+      _isLoading = true;
+      _error = '';
+    });
+
+    try {
+      final studentId = await getStudentID();
+      // Load last 30 days of data
+      final startDate = DateTime.now().subtract(const Duration(days: 30));
+      final result = await ApiServices.getStudentAttendanceHistory(
+        studentId: studentId,
+        startDate: startDate,
+        endDate: DateTime.now(),
+      );
+
+      if (result['status'] == true) {
+        final data = result['data'];
+        // Convert API response to local format grouped by date
+        final Map<String, List<Map<String, dynamic>>> groupedData = {};
+        
+        if (data['attendance_records'] != null) {
+          for (var record in data['attendance_records']) {
+            final dateStr = record['date']; // Expected format: "YYYY-MM-DD"
+            if (!groupedData.containsKey(dateStr)) {
+              groupedData[dateStr] = [];
+            }
+            groupedData[dateStr]!.add({
+              'subject': record['subject_name'],
+              'status': record['status'], // "Present" or "Absent"
+              'time': record['time'] ?? 'N/A',
+            });
+          }
+        }
+
+        setState(() {
+          _historyData = groupedData;
+          _isLoading = false;
+        });
+      } else {
+        setState(() {
+          _error = result['message'] ?? 'Failed to load attendance history';
+          _isLoading = false;
+        });
+      }
+    } catch (e) {
+      setState(() {
+        _error = 'Network error. Please try again.';
+        _isLoading = false;
+      });
+    }
+  }
 
   Future<void> _pickDate() async {
     final DateTime? picked = await showDatePicker(
@@ -124,7 +148,11 @@ class _AttendanceHistoryTabState extends State<AttendanceHistoryTab> {
 
               // 3. Class List for Selected Date
               Expanded(
-                child: _buildClassListForDate(),
+                child: _isLoading
+                    ? const Center(child: CircularProgressIndicator(color: accentColor))
+                    : _error.isNotEmpty
+                        ? _buildErrorState()
+                        : _buildClassListForDate(),
               ),
             ],
           ),
@@ -207,6 +235,25 @@ class _AttendanceHistoryTabState extends State<AttendanceHistoryTab> {
                 );
               },
             ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildErrorState() {
+    return Center(
+      child: Column(
+        mainAxisAlignment: MainAxisAlignment.center,
+        children: [
+          Icon(Icons.error_outline, size: 60, color: attentionColor.withOpacity(0.5)),
+          const SizedBox(height: 16),
+          Text(_error, style: const TextStyle(color: secondaryTextColor)),
+          const SizedBox(height: 16),
+          ElevatedButton(
+            onPressed: _loadAttendanceHistory,
+            style: ElevatedButton.styleFrom(backgroundColor: accentColor),
+            child: const Text('Retry', style: TextStyle(color: Colors.white)),
           ),
         ],
       ),

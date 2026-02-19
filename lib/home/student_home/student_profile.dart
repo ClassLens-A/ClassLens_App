@@ -1,15 +1,60 @@
 import 'dart:ui';
 import 'package:flutter/material.dart';
 import 'package:classlens/global/global.dart';
+import 'package:classlens/api/api.dart';
 import 'package:classlens/login/login_selector.dart' show LoginSelector;
 import 'student_colors.dart';
 import 'face_update_screen.dart';
 
-class StudentProfileTab extends StatelessWidget {
+class StudentProfileTab extends StatefulWidget {
   final String studentName;
   final String prn;
 
   const StudentProfileTab({super.key, required this.studentName, required this.prn});
+
+  @override
+  State<StudentProfileTab> createState() => _StudentProfileTabState();
+}
+
+class _StudentProfileTabState extends State<StudentProfileTab> {
+  bool _isLoading = true;
+  Map<String, dynamic> _profileData = {};
+  String _error = '';
+
+  @override
+  void initState() {
+    super.initState();
+    _loadProfileData();
+  }
+
+  Future<void> _loadProfileData() async {
+    setState(() {
+      _isLoading = true;
+      _error = '';
+    });
+
+    try {
+      final studentId = await getStudentID();
+      final result = await ApiServices.getStudentProfile(studentId: studentId);
+
+      if (result['status'] == true) {
+        setState(() {
+          _profileData = result['data'];
+          _isLoading = false;
+        });
+      } else {
+        setState(() {
+          _error = result['message'] ?? 'Failed to load profile';
+          _isLoading = false;
+        });
+      }
+    } catch (e) {
+      setState(() {
+        _error = 'Network error. Please try again.';
+        _isLoading = false;
+      });
+    }
+  }
 
   void _showLogoutDialog(BuildContext context) {
     showDialog(
@@ -27,10 +72,12 @@ class StudentProfileTab extends StatelessWidget {
               await unregisterFCMToken();
               // Clear all saved session data
               await clearUserSession();
-              Navigator.of(context).pushAndRemoveUntil(
-                MaterialPageRoute(builder: (context) => const LoginSelector()),
-                    (route) => false,
-              );
+              if (context.mounted) {
+                Navigator.of(context).pushAndRemoveUntil(
+                  MaterialPageRoute(builder: (context) => const LoginSelector()),
+                      (route) => false,
+                );
+              }
             },
             child: const Text("Logout", style: TextStyle(color: Colors.white)),
           ),
@@ -55,7 +102,11 @@ class StudentProfileTab extends StatelessWidget {
 
           SingleChildScrollView(
             padding: EdgeInsets.only(top: kToolbarHeight + topPadding + 20, left: 16, right: 16, bottom: 20),
-            child: _buildProfileCard(context),
+            child: _isLoading
+                ? const Center(child: CircularProgressIndicator(color: accentColor))
+                : _error.isNotEmpty
+                    ? _buildErrorState()
+                    : _buildProfileCard(context),
           ),
 
           // AppBar
@@ -84,6 +135,25 @@ class StudentProfileTab extends StatelessWidget {
     );
   }
 
+  Widget _buildErrorState() {
+    return Center(
+      child: Column(
+        mainAxisAlignment: MainAxisAlignment.center,
+        children: [
+          Icon(Icons.error_outline, size: 60, color: attentionColor.withOpacity(0.5)),
+          const SizedBox(height: 16),
+          Text(_error, style: const TextStyle(color: secondaryTextColor)),
+          const SizedBox(height: 16),
+          ElevatedButton(
+            onPressed: _loadProfileData,
+            style: ElevatedButton.styleFrom(backgroundColor: accentColor),
+            child: const Text('Retry', style: TextStyle(color: Colors.white)),
+          ),
+        ],
+      ),
+    );
+  }
+
   Widget _buildProfileCard(BuildContext context) {
     return Container(
       width: double.infinity,
@@ -98,9 +168,13 @@ class StudentProfileTab extends StatelessWidget {
         children: [
           _buildCardHeader(context),
           const SizedBox(height: 66), // 50 (radius) + 16 padding
-          Text(studentName, style: const TextStyle(fontSize: 24, fontWeight: FontWeight.bold, color: primaryTextColor)),
+          Text(widget.studentName, style: const TextStyle(fontSize: 24, fontWeight: FontWeight.bold, color: primaryTextColor)),
           const SizedBox(height: 4),
-          const Text("B.E. Computer Science & Engineering", style: TextStyle(fontSize: 16, color: secondaryTextColor)),
+          Text(
+            _profileData['department'] ?? 'B.E. Computer Science & Engineering',
+            style: const TextStyle(fontSize: 16, color: secondaryTextColor),
+            textAlign: TextAlign.center,
+          ),
 
           const SizedBox(height: 20),
           _buildStatsRow(),
@@ -110,9 +184,17 @@ class StudentProfileTab extends StatelessWidget {
             child: Divider(color: secondaryTextColor.withOpacity(0.2)),
           ),
 
-          _buildDetailRow(icon: Icons.numbers, title: "PRN", value: prn),
-          _buildDetailRow(icon: Icons.calendar_month, title: "Semester", value: "7th (4th Year)"),
-          _buildDetailRow(icon: Icons.email_outlined, title: "Email", value: "vyomshah509@gmail.com"),
+          _buildDetailRow(icon: Icons.numbers, title: "PRN", value: widget.prn),
+          _buildDetailRow(
+            icon: Icons.calendar_month,
+            title: "Semester",
+            value: _profileData['semester']?.toString() ?? "N/A",
+          ),
+          _buildDetailRow(
+            icon: Icons.email_outlined,
+            title: "Email",
+            value: _profileData['email'] ?? 'N/A',
+          ),
 
           const SizedBox(height: 16),
 
@@ -164,7 +246,7 @@ class StudentProfileTab extends StatelessWidget {
                 child: CircleAvatar(
                   radius: 46,
                   backgroundColor: primaryBackgroundColor,
-                  child: Text(studentName[0], style: const TextStyle(fontSize: 40, fontWeight: FontWeight.bold, color: primaryTextColor)),
+                  child: Text(widget.studentName[0], style: const TextStyle(fontSize: 40, fontWeight: FontWeight.bold, color: primaryTextColor)),
                 ),
               ),
               Positioned(
@@ -184,15 +266,16 @@ class StudentProfileTab extends StatelessWidget {
   }
 
   Widget _buildStatsRow() {
-    // Vyom's actual stats: 14 present out of 24 total records
+    final attendancePercentage = _profileData['attendance_percentage'] ?? 0.0;
+    final totalClasses = _profileData['total_classes'] ?? 0;
     return Padding(
       padding: const EdgeInsets.symmetric(vertical: 20.0, horizontal: 16.0),
       child: Row(
         mainAxisAlignment: MainAxisAlignment.spaceAround,
         children: [
-          _buildStatItem("Attendance", "58%"),
+          _buildStatItem("Attendance", "${attendancePercentage.toStringAsFixed(0)}%"),
           Container(width: 1, height: 40, color: secondaryTextColor.withOpacity(0.2)),
-          _buildStatItem("Total Classes", "24"),
+          _buildStatItem("Total Classes", "$totalClasses"),
         ],
       ),
     );
