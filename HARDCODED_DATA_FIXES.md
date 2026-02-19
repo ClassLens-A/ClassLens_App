@@ -43,7 +43,7 @@ The early developers had hardcoded student data for a specific student (Vyom, PR
 - ✅ Added `getSubjectAttendanceDetails()` API call
 - ✅ Fetches attendance records specific to subject and student
 - ✅ Handles missing subject IDs gracefully
-- ✅ Added loading states, emptystates, and error handling
+- ✅ Added loading states, empty states, and error handling
 
 ### 4. **API Services** (`api/api.dart`)
 **Added New Endpoints:**
