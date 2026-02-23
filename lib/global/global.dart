@@ -54,10 +54,29 @@ Future<void> saveTeacherSession({
   required String teacherName,
   required int teacherID,
 }) async {
+  // Validate teacherID before storing
+  if (teacherID <= 0) {
+    throw ArgumentError('Invalid teacher ID: $teacherID. Teacher ID must be greater than 0.');
+  }
+
+  // Validate teacherName is not empty or whitespace only
+  if (teacherName.trim().isEmpty) {
+    throw ArgumentError('Teacher name cannot be empty.');
+  }
+
+  // Validate teacherName length (optional: reasonable limits)
+  if (teacherName.trim().length < 2) {
+    throw ArgumentError('Teacher name must be at least 2 characters long.');
+  }
+
+  if (teacherName.trim().length > 100) {
+    throw ArgumentError('Teacher name cannot exceed 100 characters.');
+  }
+
   SharedPreferences pref = await SharedPreferences.getInstance();
   await pref.setBool(_keyRememberMe, rememberMe);
   await pref.setString(_keyUserType, "teacher");
-  await pref.setString(_keyTeacherName, teacherName);
+  await pref.setString(_keyTeacherName, teacherName.trim());
   await pref.setInt(_keyTeacherID, teacherID);
 }
 
@@ -84,12 +103,42 @@ Future<void> saveStudentSession({
   required int studentID,
   required String prn,
 }) async {
+  // Validate studentID before storing
+  if (studentID <= 0) {
+    throw ArgumentError('Invalid student ID: $studentID. Student ID must be greater than 0.');
+  }
+
+  // Validate studentName is not empty or whitespace only
+  if (studentName.trim().isEmpty) {
+    throw ArgumentError('Student name cannot be empty.');
+  }
+
+  // Validate studentName length (optional: reasonable limits)
+  if (studentName.trim().length < 2) {
+    throw ArgumentError('Student name must be at least 2 characters long.');
+  }
+
+  if (studentName.trim().length > 100) {
+    throw ArgumentError('Student name cannot exceed 100 characters.');
+  }
+
+  // Validate PRN is not empty or whitespace only
+  if (prn.trim().isEmpty) {
+    throw ArgumentError('Student PRN cannot be empty.');
+  }
+
+  // Validate PRN format (assuming numeric PRN)
+  final prnInt = int.tryParse(prn.trim());
+  if (prnInt == null || prnInt <= 0) {
+    throw ArgumentError('Invalid PRN format: $prn. PRN must be a valid positive number.');
+  }
+
   SharedPreferences pref = await SharedPreferences.getInstance();
   await pref.setBool(_keyRememberMe, rememberMe);
   await pref.setString(_keyUserType, "student");
-  await pref.setString(_keyStudentName, studentName);
+  await pref.setString(_keyStudentName, studentName.trim());
   await pref.setInt(_keyStudentID, studentID);
-  await pref.setString(_keyStudentPRN, prn);
+  await pref.setString(_keyStudentPRN, prn.trim());
 }
 
 // ==================== FCM Notification Token ====================

@@ -3,8 +3,6 @@ import 'package:flutter/material.dart';
 import 'package:classlens/login/teacher/teacher_signup_page.dart';
 import 'package:classlens/api/api.dart';
 import 'package:classlens/home/teacher_home/home_screen.dart';
-import 'package:shared_preferences/shared_preferences.dart';
-// ignore: unused_import
 import 'package:classlens/global/global.dart';
 
 class Login extends StatefulWidget {
@@ -299,21 +297,35 @@ class _LoginPageState extends State<Login> {
         if (result['status']) {
           _teacherEmailController.clear();
           _teacherPasswordController.clear();
-          final SharedPreferences pref = await SharedPreferences.getInstance();
-          pref.setBool("rememberMe", isChecked);
-          pref.setString("teacherName", result['teacherName']);
-          pref.setInt("teacherID", result['teacherID']);
-         // navigatorWithAnimation(context, Home(teacherName: result['teacherName'] as String?,teacherID: result['teacherID'] as int),);
-          Navigator.pushAndRemoveUntil(
-            context,
-            MaterialPageRoute(
-              builder: (context) => Home(
-                teacherName: result['teacherName'] as String?,
-                teacherID: result['teacherID'] as int,
+          
+          try {
+            // Save teacher session with validation
+            await saveTeacherSession(
+              rememberMe: isChecked,
+              teacherName: result['teacherName'],
+              teacherID: result['teacherID'],
+            );
+            
+            // Navigate to home screen
+            Navigator.pushAndRemoveUntil(
+              context,
+              MaterialPageRoute(
+                builder: (context) => Home(
+                  teacherName: result['teacherName'] as String?,
+                  teacherID: result['teacherID'] as int,
+                ),
               ),
-            ),
-                (route) => false,
-          );
+              (route) => false,
+            );
+          } catch (e) {
+            // Handle validation errors
+            ScaffoldMessenger.of(context).showSnackBar(
+              SnackBar(
+                content: Text('Session save error: ${e.toString()}'),
+                backgroundColor: Colors.red,
+              ),
+            );
+          }
 
 
         } else {

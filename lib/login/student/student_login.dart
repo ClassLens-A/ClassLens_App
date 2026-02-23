@@ -309,21 +309,31 @@ class _StudentLoginPageState extends State<StudentLogin> {
           _studentPRNController.clear();
           _studentPasswordController.clear();
           
-          // Save student session to SharedPreferences
-          await saveStudentSession(
-            rememberMe: isChecked,
-            studentName: result['studentName'],
-            studentID: result['student_id'],
-            prn: result['prn'].toString(),
-          );
-          
-          // Register FCM token for push notifications
-          await registerFCMToken(result['student_id']);
-          
-          navigatorWithAnimation(
-            context,
-            const StudentHomeScreen(),
-          );
+          try {
+            // Save student session with validation to SharedPreferences
+            await saveStudentSession(
+              rememberMe: isChecked,
+              studentName: result['studentName'],
+              studentID: result['student_id'],
+              prn: result['prn'].toString(),
+            );
+            
+            // Register FCM token for push notifications
+            await registerFCMToken(result['student_id']);
+            
+            navigatorWithAnimation(
+              context,
+              const StudentHomeScreen(),
+            );
+          } catch (e) {
+            // Handle validation errors
+            ScaffoldMessenger.of(context).showSnackBar(
+              SnackBar(
+                content: Text('Session save error: ${e.toString()}'),
+                backgroundColor: Colors.red,
+              ),
+            );
+          }
         } else {
           ScaffoldMessenger.of(context).showSnackBar(
             const SnackBar(
